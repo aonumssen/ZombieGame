@@ -8,7 +8,7 @@ GitHub repository: <https://github.com/aonumssen/ZombieGame>
 
 > Replace this line with the full names of every group member before submitting.
 
-- Your Name
+- Anthony Numssen
 
 ## Play the game
 
@@ -78,5 +78,5 @@ The JavaScript models the simulation with these classes:
 - [x] Interactive game controls and clear win/loss states
 - [x] Live population counts and history graph
 - [x] Object-oriented simulation classes
-- [ ] Full names of all group members added to this README
+- [x] Full names of all group members added to this README
 - [x] Repository submitted through GitHub
