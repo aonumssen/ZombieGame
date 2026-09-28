@@ -2,6 +2,8 @@
 
 A simple, runnable zombie rescue game created for **Zombie Game — Stage 1**. The project uses plain HTML, CSS, and JavaScript, so it runs in a browser without installing packages.
 
+GitHub repository: <https://github.com/aonumssen/ZombieGame>
+
 ## Group members
 
 > Replace this line with the full names of every group member before submitting.
@@ -77,4 +79,4 @@ The JavaScript models the simulation with these classes:
 - [x] Live population counts and history graph
 - [x] Object-oriented simulation classes
 - [ ] Full names of all group members added to this README
-- [ ] Repository submitted through GitHub
+- [x] Repository submitted through GitHub
