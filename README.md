@@ -1,12 +1,8 @@
-# Outbreak: Last Light
+# Outbreak
 
 A simple, runnable zombie rescue game created for **Zombie Game — Stage 1**. The project uses plain HTML, CSS, and JavaScript, so it runs in a browser without installing packages.
 
 GitHub repository: <https://github.com/aonumssen/ZombieGame>
-
-## Group members
-
-> Replace this line with the full names of every group member before submitting.
 
 - Anthony Numssen
 
