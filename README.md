@@ -1,78 +1,89 @@
-# Outbreak
+# Outbreak: Last Light — Python Edition
 
-A simple, runnable zombie rescue game created for **Zombie Game — Stage 1**. The project uses plain HTML, CSS, and JavaScript, so it runs in a browser without installing packages.
+This repository contains a concrete, runnable **Zombie Game — Stage 1** prototype. The primary implementation is now Python: the simulation rules are in `simulation.py`, and the playable desktop interface is in `main.py`.
 
 GitHub repository: <https://github.com/aonumssen/ZombieGame>
 
+## Group member
+
 - Anthony Numssen
 
-## Play the game
+## Run the game
 
-### From GitHub Pages
+The game uses only Python's standard library. No third-party packages are required.
 
-After publishing the repository with GitHub Pages, open the Pages link shown in the repository settings.
+1. Download or clone this repository.
+2. Open a terminal in the repository folder.
+3. Start the desktop game:
 
-### On your computer
+   ```bash
+   python3 main.py
+   ```
 
-Either open `index.html` directly in a browser, or start a small local web server from this folder:
+The game window opens with a city map, civilians, zombies, a responder, population counters, and a live human/zombie history graph.
+
+### Check the simulation without opening a window
+
+This command runs a short automated smoke test of the Python engine:
 
 ```bash
-python3 -m http.server 8000
+python3 main.py --headless
 ```
 
-Then visit <http://localhost:8000>.
+It is useful on a server or any Python installation that does not have the Tkinter desktop bindings. For the full windowed game, use Python 3 with Tkinter enabled. Tkinter is included with most Python installations; on Linux it may be packaged separately as `python3-tk`.
 
-## Controls
+## Controls and objective
 
 - **WASD** or **arrow keys** — move the responder
 - **Space** or **mouse click** — fire toward the pointer
-- **P** or the **Pause** button — pause/resume
+- **P** or **Pause** — pause/resume
+- Touch civilians to rescue them
 
-## Goal and simulation rules
+Rescue 8 civilians before the responder loses all health or the human population reaches zero.
 
-Rescue 8 civilians by touching them before the city is overrun.
+## How the simulation works
 
-- Civilians wander and flee when a zombie comes close.
-- Zombies chase the nearest target, either a civilian or the player.
-- A civilian who stays in contact with a zombie becomes infected and joins the zombie population.
-- New zombies enter from the edge of the map over time, and the spawn rate increases.
-- The player can eliminate zombies, but direct contact costs health.
-- The game ends in victory after 8 rescues, or in defeat if the player loses all health or no civilians remain.
+The game advances in small time steps. Every step:
 
-The live population graph makes the changing human and zombie populations visible while the simulation runs.
+1. The player moves according to the currently pressed keys.
+2. Civilians wander. When a zombie is close, they flee; contact gradually increases their infection value.
+3. Zombies pursue the nearest civilian or the player. A small separation force prevents the horde from collapsing into one point.
+4. Bullets move, expire, and remove zombies on contact.
+5. The player can rescue nearby civilians. Infected civilians are removed and become new zombies.
+6. New zombies enter from the map edge on an increasingly shorter interval, creating changing population dynamics.
+7. The engine records human and zombie counts for the live graph and checks victory/loss conditions.
 
-## Object-oriented design
+These rules make the prototype nontrivial: the human and zombie populations change over time through rescue, infection, shooting, and spawning.
 
-The JavaScript models the simulation with these classes:
+## Object-oriented Python design
 
-- `Entity` — shared position and movement behavior
-- `Civilian` — wandering, fleeing, and infection behavior
-- `Zombie` — targeting and pursuit behavior
-- `Player` — input, movement, health, and firing
-- `Bullet` — projectile movement and lifetime
-- `Game` — the game loop, collisions, population changes, scoring, and interface
+`simulation.py` contains the complete game model and does not import Tkinter, so it can be tested independently:
+
+- `Entity` — shared position, velocity, movement, and boundary behavior
+- `Civilian(Entity)` — wandering, fleeing, and infection state
+- `Zombie(Entity)` — target selection, pursuit, and horde separation
+- `Player(Entity)` — keyboard movement, health, damage cooldown, and firing cooldown
+- `Bullet(Entity)` — projectile movement and lifetime
+- `Simulation` — game state, collisions, population changes, score, history, and win/loss rules
+
+`main.py` contains `ZombieGameApp`, a Tkinter view/controller that draws those Python objects and sends keyboard/mouse input to `Simulation`. The interface is separate from the rules so the essential simulation remains clearly implemented in Python.
 
 ## Files
 
-- `index.html` — page structure and game interface
-- `styles.css` — visual design and responsive layout
-- `game.js` — simulation and gameplay code
+- `simulation.py` — testable Python simulation engine
+- `main.py` — playable Tkinter desktop game and headless smoke-test entry point
+- `requirements.txt` — documents that no third-party packages are needed
+- `PROJECT_GUIDE.md` — project notes and assignment context
+- `index.html`, `styles.css`, `game.js` — earlier browser prototype retained as reference; they are not the primary submission implementation
 
-## Publish with GitHub Pages
-
-1. Create a new GitHub repository and add these files.
-2. Commit and push them to the `main` branch.
-3. In the repository, open **Settings → Pages**.
-4. Under **Build and deployment**, choose **Deploy from a branch**.
-5. Select the `main` branch and `/ (root)`, then click **Save**.
-6. GitHub will display the public game link after deployment finishes.
-
-## Assignment requirement checklist
+## Assignment alignment
 
 - [x] Concrete, runnable prototype
+- [x] Essential simulation implemented in Python
 - [x] Nontrivial human and zombie population dynamics
-- [x] Interactive game controls and clear win/loss states
+- [x] Interactive controls and clear win/loss states
 - [x] Live population counts and history graph
-- [x] Object-oriented simulation classes
-- [x] Full names of all group members added to this README
-- [x] Repository submitted through GitHub
+- [x] Object-oriented design with interacting classes
+- [x] Full group-member name included
+- [x] Source files available in GitHub
+
