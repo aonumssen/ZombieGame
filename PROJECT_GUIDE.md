@@ -149,7 +149,8 @@ The constants near the top of `simulation.py` make the prototype easy to tune:
 | `requirements.txt` | Documents that no third-party packages are required |
 | `README.md` | Repository overview, setup instructions, controls, and assignment checklist |
 | `PROJECT_GUIDE.md` | Detailed explanation for reviewing or defending the project |
-| `index.html`, `styles.css`, `game.js` | Earlier browser prototype retained as reference, not the primary implementation |
+
+The game source is Python-only. The repository does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
 ## 10. How it satisfies the assignment
 
@@ -172,4 +173,3 @@ For a short class demonstration:
 6. Explain that infection converts one object type into another.
 7. Show `Entity`, `Civilian`, `Zombie`, `Player`, `Bullet`, and `Simulation` in `simulation.py`.
 8. Explain the escalating spawn timer and the win/loss rules.
-
