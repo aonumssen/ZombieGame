@@ -74,7 +74,8 @@ These rules make the prototype nontrivial: the human and zombie populations chan
 - `main.py` — playable Tkinter desktop game and headless smoke-test entry point
 - `requirements.txt` — documents that no third-party packages are needed
 - `PROJECT_GUIDE.md` — project notes and assignment context
-- `index.html`, `styles.css`, `game.js` — earlier browser prototype retained as reference; they are not the primary submission implementation
+
+The game source is Python-only. There are no HTML, JavaScript, Java, CSS, or browser-game files in the submission.
 
 ## Assignment alignment
 
@@ -86,4 +87,3 @@ These rules make the prototype nontrivial: the human and zombie populations chan
 - [x] Object-oriented design with interacting classes
 - [x] Full group-member name included
 - [x] Source files available in GitHub
-
