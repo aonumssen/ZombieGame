@@ -1,6 +1,8 @@
-# Outbreak: Last Light — Python Edition
+# Outbreak Last Light
 
-This repository contains a concrete, runnable **Zombie Game — Stage 1** prototype. The primary implementation is now Python: the simulation rules are in `simulation.py`, and the playable desktop interface is in `main.py`.
+This is my Python version of the CPS3100 Zombie Game Stage 1 assignment. It is a small rescue game and a population simulation. I built it as a solo project.
+
+You play an emergency responder trying to rescue civilians while zombies move around the city, infect people, and continue to appear over time. The simulation and the desktop window are both written in Python.
 
 GitHub repository: <https://github.com/aonumssen/ZombieGame>
 
@@ -10,37 +12,37 @@ GitHub repository: <https://github.com/aonumssen/ZombieGame>
 
 ## Run the game
 
-The game uses only Python's standard library. No third-party packages are required.
+The project uses Python's standard library, so there are no third-party packages to install.
 
 1. Download or clone this repository.
 2. Open a terminal in the repository folder.
-3. Start the desktop game:
+3. Start the game:
 
    ```bash
    python3 main.py
    ```
 
-The game window opens with a city map, civilians, zombies, a responder, population counters, and a live human/zombie history graph.
+The game window shows the city, the responder, civilians, zombies, bullets, current population counts, and a small population-history graph.
 
-### Check the simulation without opening a window
+### Run without opening a window
 
-This command runs a short automated smoke test of the Python engine:
+This command runs a short check of the Python engine:
 
 ```bash
 python3 main.py --headless
 ```
 
-It is useful on a server or any Python installation that does not have the Tkinter desktop bindings. For the full windowed game, use Python 3 with Tkinter enabled. Tkinter is included with most Python installations; on Linux it may be packaged separately as `python3-tk`.
+It is useful on a server or on a Python installation that does not have the Tkinter desktop bindings. The windowed version needs Python with Tkinter enabled.
 
-### Choose a state-storage solution
+### Save and load state
 
-The default app uses `InMemoryStateStore`, which is fast and lasts for the current process. To use durable JSON checkpoints instead, provide a file path:
+The normal game uses `InMemoryStateStore`, so a checkpoint lasts only while the program is running. To save checkpoints in a JSON file instead, provide a file path:
 
 ```bash
 python3 main.py --json-checkpoint save/checkpoint.json
 ```
 
-The **Save state** and **Load state** buttons use whichever adapter was selected. The simulation code does not change when the adapter changes.
+The **Save state** and **Load state** buttons work the same way with either storage option. The game rules do not change when the storage option changes.
 
 Run the storage tests with:
 
@@ -48,32 +50,32 @@ Run the storage tests with:
 python3 -m unittest -v test_storage.py
 ```
 
-## Controls and objective
+## Controls and goal
 
 - **WASD** or **arrow keys** — move the responder
 - **Space** or **mouse click** — fire toward the pointer
 - **P** or **Pause** — pause/resume
 - Touch civilians to rescue them
 
-Rescue 8 civilians before the responder loses all health or the human population reaches zero.
+The goal is to rescue 8 civilians. The game ends if the responder loses all health or if no humans remain.
 
-## How the simulation works
+## What happens during a game
 
-The game advances in small time steps. Every step:
+The game updates in small time steps. During each step:
 
-1. The player moves according to the currently pressed keys.
-2. Civilians wander. When a zombie is close, they flee; contact gradually increases their infection value.
-3. Zombies pursue the nearest civilian or the player. A small separation force prevents the horde from collapsing into one point.
-4. Bullets move, expire, and remove zombies on contact.
-5. The player can rescue nearby civilians. Infected civilians are removed and become new zombies.
-6. New zombies enter from the map edge on an increasingly shorter interval, creating changing population dynamics.
-7. The engine records human and zombie counts for the live graph and checks victory/loss conditions.
+1. The responder moves based on the keys being pressed.
+2. Civilians wander, but flee when a zombie gets close. Nearby contact raises their infection level.
+3. Zombies look for the closest civilian or the responder and move toward that target.
+4. Bullets move across the map and can remove zombies when they hit.
+5. The responder can rescue civilians by touching them.
+6. A fully infected civilian is removed and replaced by a zombie.
+7. New zombies enter from the edge of the map. Their spawn interval becomes shorter as the game continues.
 
-These rules make the prototype nontrivial: the human and zombie populations change over time through rescue, infection, shooting, and spawning.
+Because people can be rescued or infected and zombies can be spawned or shot, both populations change over time. That is the nontrivial part of the simulation required by the assignment.
 
-## Object-oriented Python design
+## Python classes
 
-`simulation.py` contains the complete game model and does not import Tkinter, so it can be tested independently:
+The main game model is in `simulation.py`. It does not import Tkinter, so the rules can be tested without the user interface.
 
 - `Entity` — shared position, velocity, movement, and boundary behavior
 - `Civilian(Entity)` — wandering, fleeing, and infection state
@@ -82,9 +84,9 @@ These rules make the prototype nontrivial: the human and zombie populations chan
 - `Bullet(Entity)` — projectile movement and lifetime
 - `Simulation` — game state, collisions, population changes, score, history, and win/loss rules
 
-`main.py` contains `ZombieGameApp`, a Tkinter view/controller that draws those Python objects and sends keyboard/mouse input to `Simulation`. The interface is separate from the rules so the essential simulation remains clearly implemented in Python.
+`main.py` contains `ZombieGameApp`, the Tkinter application that draws the objects and sends keyboard/mouse input to `Simulation`. Keeping the window code separate from the model makes the simulation easier to test and explain.
 
-## Files
+## Project files
 
 - `simulation.py` — testable Python simulation engine
 - `main.py` — playable Tkinter desktop game and headless smoke-test entry point
@@ -93,17 +95,15 @@ These rules make the prototype nontrivial: the human and zombie populations chan
 - `requirements.txt` — documents that no third-party packages are needed
 - `PROJECT_GUIDE.md` — project notes and assignment context
 
-The game source is Python-only. There are no HTML, JavaScript, Java, CSS, or browser-game files in the submission.
+The submitted game code is Python. It does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
-## Assignment alignment
+## What this demonstrates
 
-- [x] Concrete, runnable prototype
-- [x] Essential simulation implemented in Python
-- [x] Nontrivial human and zombie population dynamics
-- [x] Interactive controls and clear win/loss states
-- [x] Live population counts and history graph
-- [x] Object-oriented design with interacting classes
-- [x] Simulation logic decoupled from state storage
-- [x] In-memory and JSON-file storage implementations tested
-- [x] Full group-member name included
-- [x] Source files available in GitHub
+- Runnable Stage 1 prototype
+- Human and zombie population changes
+- Autonomous movement and basic behavior
+- Interactive controls and win/loss conditions
+- Object-oriented Python classes
+- Simulation logic separated from state storage
+- In-memory and JSON-file storage implementations
+- Tests showing that both storage options restore the same simulation
