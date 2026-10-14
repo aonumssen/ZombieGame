@@ -103,5 +103,7 @@ The game source is Python-only. There are no HTML, JavaScript, Java, CSS, or bro
 - [x] Interactive controls and clear win/loss states
 - [x] Live population counts and history graph
 - [x] Object-oriented design with interacting classes
+- [x] Simulation logic decoupled from state storage
+- [x] In-memory and JSON-file storage implementations tested
 - [x] Full group-member name included
 - [x] Source files available in GitHub
