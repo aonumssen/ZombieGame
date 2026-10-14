@@ -32,6 +32,22 @@ python3 main.py --headless
 
 It is useful on a server or any Python installation that does not have the Tkinter desktop bindings. For the full windowed game, use Python 3 with Tkinter enabled. Tkinter is included with most Python installations; on Linux it may be packaged separately as `python3-tk`.
 
+### Choose a state-storage solution
+
+The default app uses `InMemoryStateStore`, which is fast and lasts for the current process. To use durable JSON checkpoints instead, provide a file path:
+
+```bash
+python3 main.py --json-checkpoint save/checkpoint.json
+```
+
+The **Save state** and **Load state** buttons use whichever adapter was selected. The simulation code does not change when the adapter changes.
+
+Run the storage tests with:
+
+```bash
+python3 -m unittest -v test_storage.py
+```
+
 ## Controls and objective
 
 - **WASD** or **arrow keys** — move the responder
@@ -72,6 +88,8 @@ These rules make the prototype nontrivial: the human and zombie populations chan
 
 - `simulation.py` — testable Python simulation engine
 - `main.py` — playable Tkinter desktop game and headless smoke-test entry point
+- `state_storage.py` — storage interface, in-memory adapter, JSON-file adapter, and no-op adapter
+- `test_storage.py` — tests proving the same simulation works with both storage solutions
 - `requirements.txt` — documents that no third-party packages are needed
 - `PROJECT_GUIDE.md` — project notes and assignment context
 
