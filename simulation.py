@@ -10,7 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 import random
-from typing import Iterable, Optional
+from typing import Any, Iterable, Mapping, Optional
+
+from state_storage import NullStateStore, StateData, StateStore
 
 
 WORLD_WIDTH = 760
@@ -184,10 +186,22 @@ class Bullet(Entity):
 
 
 class Simulation:
-    """State machine and rules for one complete game session."""
+    """State machine and rules for one complete game session.
 
-    def __init__(self, seed: Optional[int] = None) -> None:
+    ``state_store`` is an injected interface.  The simulation only knows how
+    to produce and consume a plain state dictionary; it does not know whether
+    that dictionary is held in memory, written to JSON, or stored elsewhere.
+    """
+
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        state_store: Optional[StateStore] = None,
+        checkpoint_interval: float = 0.0,
+    ) -> None:
         self.rng = random.Random(seed)
+        self.state_store = state_store or NullStateStore()
+        self.checkpoint_interval = max(0.0, checkpoint_interval)
         self.player = Player()
         self.civilians: list[Civilian] = []
         self.zombies: list[Zombie] = []
@@ -198,6 +212,7 @@ class Simulation:
         self.rescued = 0
         self.spawn_timer = 0.0
         self.history_timer = 0.0
+        self.checkpoint_timer = 0.0
         self.last_event = "Press Start to begin the rescue."
         self.reset()
 
@@ -212,6 +227,7 @@ class Simulation:
         self.rescued = 0
         self.spawn_timer = 0.0
         self.history_timer = 0.0
+        self.checkpoint_timer = 0.0
         self.last_event = "Press Start to begin the rescue."
 
         for _ in range(STARTING_CIVILIANS):
@@ -271,6 +287,7 @@ class Simulation:
         self._spawn_over_time(dt)
         self._record_history()
         self._check_end_state()
+        self._maybe_checkpoint(dt)
 
     def snapshot(self) -> dict[str, object]:
         """Return simple values suitable for a UI, test, or logger."""
@@ -283,6 +300,177 @@ class Simulation:
             "health": self.player.health,
             "message": self.last_event,
         }
+
+    def save_checkpoint(self) -> StateData:
+        """Serialize all live state and send it through the injected store."""
+        state = self.to_state()
+        self.state_store.save(state)
+        return state
+
+    def load_checkpoint(self) -> bool:
+        """Restore the latest checkpoint from the injected store, if present."""
+        state = self.state_store.load()
+        if state is None:
+            return False
+        self._restore_state(state)
+        return True
+
+    def to_state(self) -> StateData:
+        """Convert agents, environment, and runtime into storage-neutral data."""
+        return {
+            "schema_version": 1,
+            "environment": {
+                "width": WORLD_WIDTH,
+                "height": WORLD_HEIGHT,
+                "margin": WORLD_MARGIN,
+            },
+            "runtime": {
+                "state": self.state,
+                "elapsed": self.elapsed,
+                "rescued": self.rescued,
+                "spawn_timer": self.spawn_timer,
+                "history_timer": self.history_timer,
+                "checkpoint_timer": self.checkpoint_timer,
+                "last_event": self.last_event,
+                "population_history": [list(point) for point in self.population_history],
+                "random_state": self._random_state_to_data(),
+            },
+            "agents": {
+                "player": self._entity_to_data(
+                    self.player,
+                    health=self.player.health,
+                    speed=self.player.speed,
+                    fire_cooldown=self.player.fire_cooldown,
+                    damage_cooldown=self.player.damage_cooldown,
+                ),
+                "civilians": [
+                    self._entity_to_data(
+                        civilian,
+                        speed=civilian.speed,
+                        infection=civilian.infection,
+                        wander_time=civilian.wander_time,
+                        wander_angle=civilian.wander_angle,
+                    )
+                    for civilian in self.civilians
+                ],
+                "zombies": [
+                    self._entity_to_data(zombie, speed=zombie.speed, wobble=zombie.wobble)
+                    for zombie in self.zombies
+                ],
+                "bullets": [
+                    self._entity_to_data(bullet, life=bullet.life) for bullet in self.bullets
+                ],
+            },
+        }
+
+    def _restore_state(self, state: Mapping[str, Any]) -> None:
+        if state.get("schema_version") != 1:
+            raise ValueError("Unsupported simulation state schema")
+        environment = state.get("environment", {})
+        if (
+            environment.get("width") != WORLD_WIDTH
+            or environment.get("height") != WORLD_HEIGHT
+            or environment.get("margin") != WORLD_MARGIN
+        ):
+            raise ValueError("Saved state belongs to a different simulation environment")
+
+        runtime = state["runtime"]
+        agents = state["agents"]
+        if not isinstance(runtime, Mapping) or not isinstance(agents, Mapping):
+            raise ValueError("Simulation state is missing runtime or agent data")
+
+        random_state = runtime.get("random_state")
+
+        player_data = agents["player"]
+        if not isinstance(player_data, Mapping):
+            raise ValueError("Simulation state is missing player data")
+        self.player = Player()
+        self._apply_entity_data(self.player, player_data)
+        self.player.speed = float(player_data["speed"])
+        self.player.health = float(player_data["health"])
+        self.player.fire_cooldown = float(player_data["fire_cooldown"])
+        self.player.damage_cooldown = float(player_data["damage_cooldown"])
+
+        self.civilians = []
+        for civilian_data in agents["civilians"]:
+            civilian = Civilian(float(civilian_data["x"]), float(civilian_data["y"]), self.rng)
+            self._apply_entity_data(civilian, civilian_data)
+            civilian.speed = float(civilian_data["speed"])
+            civilian.infection = float(civilian_data["infection"])
+            civilian.wander_time = float(civilian_data["wander_time"])
+            civilian.wander_angle = float(civilian_data["wander_angle"])
+            self.civilians.append(civilian)
+
+        self.zombies = []
+        for zombie_data in agents["zombies"]:
+            zombie = Zombie(float(zombie_data["x"]), float(zombie_data["y"]), self.rng)
+            self._apply_entity_data(zombie, zombie_data)
+            zombie.speed = float(zombie_data["speed"])
+            zombie.wobble = float(zombie_data["wobble"])
+            self.zombies.append(zombie)
+
+        self.bullets = []
+        for bullet_data in agents["bullets"]:
+            bullet = Bullet(float(bullet_data["x"]), float(bullet_data["y"]), 0.0)
+            self._apply_entity_data(bullet, bullet_data)
+            bullet.life = float(bullet_data["life"])
+            self.bullets.append(bullet)
+
+        # Constructors use randomness for default values. Restore the exact
+        # generator state after reconstruction so the next simulation step is
+        # identical to the step that would have followed the original save.
+        if isinstance(random_state, Mapping):
+            internal = random_state.get("internal")
+            if isinstance(internal, list):
+                self.rng.setstate(
+                    (
+                        int(random_state["version"]),
+                        tuple(int(value) for value in internal),
+                        random_state.get("gauss"),
+                    )
+                )
+
+        self.state = str(runtime["state"])
+        self.elapsed = float(runtime["elapsed"])
+        self.rescued = int(runtime["rescued"])
+        self.spawn_timer = float(runtime["spawn_timer"])
+        self.history_timer = float(runtime["history_timer"])
+        self.checkpoint_timer = float(runtime.get("checkpoint_timer", 0.0))
+        self.last_event = str(runtime["last_event"])
+        self.population_history = [
+            (int(point[0]), int(point[1])) for point in runtime["population_history"]
+        ]
+
+    @staticmethod
+    def _entity_to_data(entity: Entity, **extra: Any) -> dict[str, Any]:
+        return {
+            "x": entity.x,
+            "y": entity.y,
+            "radius": entity.radius,
+            "vx": entity.vx,
+            "vy": entity.vy,
+            **extra,
+        }
+
+    @staticmethod
+    def _apply_entity_data(entity: Entity, data: Mapping[str, Any]) -> None:
+        entity.x = float(data["x"])
+        entity.y = float(data["y"])
+        entity.radius = float(data["radius"])
+        entity.vx = float(data["vx"])
+        entity.vy = float(data["vy"])
+
+    def _random_state_to_data(self) -> dict[str, Any]:
+        version, internal, gauss = self.rng.getstate()
+        return {"version": version, "internal": list(internal), "gauss": gauss}
+
+    def _maybe_checkpoint(self, dt: float) -> None:
+        if self.checkpoint_interval <= 0:
+            return
+        self.checkpoint_timer += dt
+        if self.checkpoint_timer >= self.checkpoint_interval:
+            self.checkpoint_timer = 0.0
+            self.save_checkpoint()
 
     def _random_point(self, min_distance: float = 0) -> tuple[float, float]:
         for _ in range(80):
@@ -383,4 +571,3 @@ class Simulation:
         elif not self.civilians:
             self.state = "lost"
             self.last_event = "No civilians remain in the city."
-
