@@ -1,14 +1,14 @@
-# Outbreak: Last Light — Python Project Guide
+# Outbreak Last Light Project Guide
 
-This guide explains the Python implementation and how it satisfies Zombie Game — Stage 1.
+This guide explains how I built the Python game and how it meets the Zombie Game Stage 1 requirements.
 
-## 1. Project idea
+## 1. What I built
 
-**Outbreak: Last Light** is a real-time rescue game and population simulation. The player is an emergency responder in a city containing civilians and zombies. The goal is to reach and rescue 8 civilians before the responder is defeated or all civilians become infected.
+**Outbreak Last Light** is a real-time rescue game and population simulation. The player is an emergency responder in a city containing civilians and zombies. The goal is to rescue 8 civilians before the responder is defeated or all civilians become infected.
 
-The prototype is intentionally simple enough to explain and defend, but it is not trivial: autonomous entities move independently, zombies select targets, civilians flee danger, infection converts humans into zombies, new zombies spawn over time, bullets collide with zombies, and the interface records population history.
+I kept the prototype small enough to explain in class, but there is still more happening than just moving colored shapes. Entities move independently, zombies choose targets, civilians flee danger, infection can turn a civilian into a zombie, new zombies appear over time, bullets collide with zombies, and the interface records population history.
 
-## 2. How to play
+## 2. How to run and play
 
 Run the desktop interface from the project folder:
 
@@ -24,7 +24,7 @@ python3 main.py
 - Avoid direct contact with zombies because each successful hit removes 18 health.
 - Press **P** or select **Pause** to pause the game.
 
-The player wins after rescuing 8 civilians. The player loses when health reaches zero or when no civilians remain in the city.
+I win after rescuing 8 civilians. I lose when health reaches zero or when no civilians remain in the city.
 
 The Python engine can also be checked without a window:
 
@@ -32,9 +32,9 @@ The Python engine can also be checked without a window:
 python3 main.py --headless
 ```
 
-## 3. Population dynamics
+## 3. How the populations change
 
-The assignment asks for varying human and/or zombie populations. This game models both.
+The assignment asks for changing human and/or zombie populations. This game models both.
 
 ### Civilian population
 
@@ -51,7 +51,7 @@ The game begins with 3 zombies. The number changes in three ways:
 2. Zombies enter from a random map edge on a timer.
 3. A zombie is removed when hit by a bullet.
 
-The normal spawn interval begins at 5.8 seconds and gradually falls toward a minimum of 2.25 seconds. This creates escalating difficulty instead of a static simulation.
+The normal spawn interval begins at 5.8 seconds and gradually falls toward a minimum of 2.25 seconds. This makes the game gradually harder instead of leaving the population static.
 
 ### Infection and behavior
 
@@ -64,9 +64,9 @@ When a zombie stays close enough to a civilian, that civilian's infection meter 
 
 The population graph records the number of civilians and zombies once per second and displays recent samples.
 
-## 4. Object-oriented Python design
+## 4. How the Python classes fit together
 
-All essential simulation code is in `simulation.py`. It does not import Tkinter, which makes it testable independently from the interface.
+All of the important simulation code is in `simulation.py`. It does not import Tkinter, so I can test the game rules separately from the window.
 
 ### `Entity`
 
@@ -90,15 +90,15 @@ Represents one projectile. A bullet moves in its firing direction at a fixed spe
 
 ### `Simulation`
 
-Coordinates the complete model. It owns all objects and handles game state (`ready`, `running`, `paused`, `won`, or `lost`), timed spawning, collisions, rescue, infection, damage, shooting, graph history, and ending conditions.
+This is the class that coordinates the model. It owns the objects and handles game state (`ready`, `running`, `paused`, `won`, or `lost`), timed spawning, collisions, rescue, infection, damage, shooting, graph history, and ending conditions.
 
 ### `ZombieGameApp`
 
-`main.py` contains the Tkinter view/controller. It draws the Python objects, sends keyboard and mouse input to `Simulation`, and displays counters, health, status messages, and the population graph. The UI is separate from the rules, so the essential simulation is plainly Python code.
+`main.py` contains the Tkinter window. It draws the Python objects, sends keyboard and mouse input to `Simulation`, and displays counters, health, status messages, and the population graph. The UI is separate from the rules, so the game model stays in Python and can be tested on its own.
 
-## 5. Decoupled state-storage design
+## 5. Keeping storage separate from the game rules
 
-The simulation must not depend on whether live state is stored in memory, a file, a database, or another service. The design uses dependency injection and an abstract storage interface.
+I did not want the simulation to care whether a checkpoint was kept in memory, a file, a database, or another service. The design uses dependency injection and one abstract storage interface.
 
 ### `StateStore`
 
@@ -108,34 +108,34 @@ The simulation must not depend on whether live state is stored in memory, a file
 - `load()` returns the latest checkpoint or `None`.
 - `clear()` removes the checkpoint.
 
-The interface is the only storage API imported by `Simulation`. The simulation serializes agents, environment values, and runtime values into ordinary dictionaries. It never opens a file or calls JSON directly.
+`StateStore` is the only storage API used by `Simulation`. The simulation converts agents, environment values, and runtime values into ordinary dictionaries. It never opens a file or calls JSON directly.
 
 ### `InMemoryStateStore`
 
-This adapter keeps a deep copy of the checkpoint in the Python process. It is fast and useful for the normal game window, tests, and temporary checkpoints. The deep copy prevents later changes to game objects from silently changing the saved checkpoint.
+This adapter keeps a deep copy of the checkpoint in the Python process. It is fast and useful for the normal game window, tests, and temporary checkpoints. The deep copy matters because later changes to game objects should not change an older checkpoint.
 
 ### `JsonFileStateStore`
 
-This adapter writes the same dictionary to a JSON file. It writes to a temporary file and then replaces the target file atomically, which prevents a partially written checkpoint if the program stops during a save. JSON makes the saved state human-readable and durable across program restarts.
+This adapter writes the same dictionary to a JSON file. It writes to a temporary file and then replaces the target file, which helps prevent a half-written checkpoint if the program stops during a save. JSON also makes the saved state easy to inspect and keeps it available after the program restarts.
 
 ### `NullStateStore`
 
 This no-op adapter allows the simulation to run without persistence when a caller does not need checkpoints.
 
-### Why the layers are decoupled
+### Why this separation works
 
-`Simulation.save_checkpoint()` calls only `self.state_store.save(...)`, and `Simulation.load_checkpoint()` calls only `self.state_store.load()`. The simulation does not know which concrete class is behind that object. Therefore:
+`Simulation.save_checkpoint()` calls only `self.state_store.save(...)`, and `Simulation.load_checkpoint()` calls only `self.state_store.load()`. The simulation does not know which concrete class is behind that object. That gives me a few useful results:
 
 1. The game rules stay unchanged when storage changes.
 2. Each storage adapter can be tested independently.
 3. A future SQLite or network adapter only needs to implement `StateStore`.
 4. The UI can choose a backend at startup using `--json-checkpoint` without changing agent behavior.
 
-The state dictionary is divided into `environment`, `agents`, and `runtime`. It includes positions, velocities, health, infection, bullets, timers, score, game state, population history, and the random-generator state needed for deterministic continuation.
+The state dictionary is divided into `environment`, `agents`, and `runtime`. It includes positions, velocities, health, infection, bullets, timers, score, game state, population history, and the random-generator state needed to continue the simulation consistently.
 
 `test_storage.py` runs the same round-trip test with both `InMemoryStateStore` and `JsonFileStateStore`, demonstrating that the simulation layer is independent of the storage solution.
 
-## 6. The game loop
+## 6. The update loop
 
 Tkinter calls the app's `_tick()` method about 30 times per second. Each tick sends a small time step to `Simulation.update()` and then redraws the current state.
 
@@ -152,7 +152,7 @@ Every character is represented by a center point and collision radius. Two entit
 
 The engine resolves each interaction in dedicated methods, keeping population changes explicit and easy to defend.
 
-## 8. Interface and visual design
+## 8. What is on the screen
 
 The Tkinter window contains:
 
@@ -163,7 +163,7 @@ The Tkinter window contains:
 - a population-history graph
 - a status message and controls guide
 
-The project uses no downloaded images, game engines, or third-party packages. The only UI dependency is Python's standard-library Tkinter module.
+I did not use downloaded images, a game engine, or third-party packages. The only UI dependency is Python's standard-library Tkinter module.
 
 ## 9. Important balancing values
 
@@ -191,21 +191,21 @@ The constants near the top of `simulation.py` make the prototype easy to tune:
 | `README.md` | Repository overview, setup instructions, controls, and assignment checklist |
 | `PROJECT_GUIDE.md` | Detailed explanation for reviewing or defending the project |
 
-The game source is Python-only. The repository does not use HTML, JavaScript, Java, CSS, or a browser runtime.
+The submitted game source is Python. The repository does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
-## 11. How it satisfies the assignment
+## 11. How this meets the assignment
 
-- **Concrete:** it contains a complete player objective, controls, feedback, and ending conditions.
+- **Concrete:** it has a player objective, controls, feedback, and ending conditions.
 - **Runnable:** `python3 main.py` starts the desktop application, and `python3 main.py --headless` verifies the engine without a display.
 - **Simple but nontrivial:** the code includes autonomous agents, targeting, fleeing, infection, conversion, collisions, escalating spawns, and population tracking.
 - **Varying population dynamics:** people are rescued or infected, zombies are created or eliminated, and both populations are graphed over time.
 - **Python-first:** the essential model is implemented in readable Python classes, independent of the interface.
 - **Storage decoupling:** the same simulation state can be saved to memory or JSON through one abstract interface.
-- **GitHub-ready:** all source files and documentation are available in the repository.
+- **Available for review:** the source files and documentation are in this repository.
 
-## 12. Suggested demonstration
+## 12. A short demonstration plan
 
-For a short class demonstration:
+For a short class demonstration, I would:
 
 1. Run `python3 main.py` and show the starting counts of 14 civilians and 3 zombies.
 2. Start the game and point out that civilians wander independently.
