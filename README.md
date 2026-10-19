@@ -107,3 +107,9 @@ The submitted game code is Python. It does not use HTML, JavaScript, Java, CSS, 
 - Simulation logic separated from state storage
 - In-memory and JSON-file storage implementations
 - Tests showing that both storage options restore the same simulation
+
+## Stage 2
+
+The Stage 2 extension scales the population model to thousands of agents. It adds SQLite persistence, spatial-hash neighbor finding, parallel event processing, and a benchmark that compares serial and parallel runs.
+
+See [`STAGE2_GUIDE.md`](STAGE2_GUIDE.md) for the design, commands, measured results, and demonstration plan.
