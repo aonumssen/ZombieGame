@@ -190,6 +190,7 @@ The constants near the top of `simulation.py` make the prototype easy to tune:
 | `requirements.txt` | Documents that no third-party packages are required |
 | `README.md` | Repository overview, setup instructions, controls, and assignment checklist |
 | `PROJECT_GUIDE.md` | Detailed explanation for reviewing or defending the project |
+| `STAGE2_GUIDE.md` | Stage 2 design, database schema, parallelism, experiments, and demonstration plan |
 
 The submitted game source is Python. The repository does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
