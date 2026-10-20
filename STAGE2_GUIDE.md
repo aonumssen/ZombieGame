@@ -21,8 +21,10 @@ I kept the implementation in Python's standard library. SQLite comes from Python
 | `stage2_parallel.py` | Spatial-hash neighbor finding and parallel event processing |
 | `stage2_database.py` | SQLite schema and persistence adapter |
 | `stage2_experiment.py` | Repeatable scale and serial-versus-parallel benchmark |
+| `stage2_demo.py` | Short run that prints parallel work and SQLite row counts |
 | `test_stage2.py` | Correctness tests for both parallel stages and SQLite persistence |
 | `stage2_results.json` | Measured results from the documented ten-step experiment |
+| `STAGE2_REPORT.md` | Submission-ready explanation of the design, results, summary, and demonstration |
 
 ## How the design works
 
