@@ -98,8 +98,10 @@ The main game model is in `simulation.py`. It does not import Tkinter, so the ru
 - `stage2_parallel.py` — spatial-hash neighbor finding and event processing workers
 - `stage2_database.py` — SQLite storage for runs, agents, events, and measurements
 - `stage2_experiment.py` — command-line experiment runner
+- `stage2_demo.py` — short demonstration that runs the engine and writes SQLite rows
 - `test_stage2.py` — tests for Stage 2 behavior and persistence
 - `STAGE2_GUIDE.md` — Stage 2 design explanation and measured results
+- `STAGE2_REPORT.md` — direct response to the design, results, summary, and demonstration requirements
 
 The submitted game code is Python. It does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
@@ -119,3 +121,5 @@ The submitted game code is Python. It does not use HTML, JavaScript, Java, CSS, 
 The Stage 2 extension scales the population model to thousands of agents. It adds SQLite persistence, spatial-hash neighbor finding, parallel event processing, and a benchmark that compares serial and parallel runs.
 
 See [`STAGE2_GUIDE.md`](STAGE2_GUIDE.md) for the design, commands, measured results, and demonstration plan.
+
+For a submission-ready explanation of the two required points, see [`STAGE2_REPORT.md`](STAGE2_REPORT.md). To run the short demonstration, use `python3 stage2_demo.py`.
