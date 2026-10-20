@@ -94,6 +94,12 @@ The main game model is in `simulation.py`. It does not import Tkinter, so the ru
 - `test_storage.py` — tests proving the same simulation works with both storage solutions
 - `requirements.txt` — documents that no third-party packages are needed
 - `PROJECT_GUIDE.md` — project notes and assignment context
+- `stage2_simulation.py` — larger headless simulation for thousands of agents
+- `stage2_parallel.py` — spatial-hash neighbor finding and event processing workers
+- `stage2_database.py` — SQLite storage for runs, agents, events, and measurements
+- `stage2_experiment.py` — command-line experiment runner
+- `test_stage2.py` — tests for Stage 2 behavior and persistence
+- `STAGE2_GUIDE.md` — Stage 2 design explanation and measured results
 
 The submitted game code is Python. It does not use HTML, JavaScript, Java, CSS, or a browser runtime.
 
