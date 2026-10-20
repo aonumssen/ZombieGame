@@ -1,17 +1,17 @@
 # Zombie Game Stage 2
 
-Stage 2 scales the population model from a small game prototype to a larger experiment. The Stage 1 window is still available through `main.py`. The new Stage 2 code is a separate, headless engine so it can create thousands of agents and measure the work without a graphics window getting in the way.
+For Stage 2, I kept the original game available through `main.py` and added a separate headless engine. This lets me create thousands of agents and measure the simulation without a graphics window affecting the results.
 
-## What Stage 2 adds
+## What I added
 
-The implementation covers the four requested parts:
+The new code covers the four parts in the assignment:
 
 1. `ScalableSimulation` creates a configurable number of agents. The default experiment uses 1,000, 5,000, and 10,000 agents.
 2. `SQLiteStateStore` saves run settings, the latest agent snapshot, every interaction event, and per-step measurements in a SQLite database.
 3. `SpatialHashNeighborFinder` divides the world into cells and checks nearby cells in parallel chunks instead of comparing every agent with every other agent.
 4. `ParallelEventProcessor` creates infection events and reduces their per-agent changes in parallel chunks. The final state update happens in one deterministic commit on the main thread.
 
-The implementation uses only Python's standard library. The database is SQLite through Python's built-in `sqlite3` module, and the parallel workers use `concurrent.futures.ThreadPoolExecutor`.
+I kept the implementation in Python's standard library. SQLite comes from Python's built-in `sqlite3` module, and the parallel workers use `concurrent.futures.ThreadPoolExecutor`.
 
 ## Files
 
@@ -24,13 +24,13 @@ The implementation uses only Python's standard library. The database is SQLite t
 | `test_stage2.py` | Correctness tests for both parallel stages and SQLite persistence |
 | `stage2_results.json` | Measured results from the documented ten-step experiment |
 
-## Design
+## How the design works
 
 ### Live state
 
-Each `ScalableAgent` has an ID, type (`human` or `zombie`), position, velocity, infection value, and health. The live objects stay in memory during a step because movement and state updates need fast access.
+Each `ScalableAgent` has an ID, a type (`human` or `zombie`), a position, a velocity, an infection value, and health. I keep these live objects in memory during a step because movement and state updates need quick access.
 
-The simulation exposes an immutable `AgentView` snapshot to the worker stages. A worker never changes a live agent. This gives a clear boundary:
+Before the expensive work starts, the simulation creates an immutable `AgentView` snapshot. Workers read that snapshot but never change a live agent. The flow is:
 
 ```text
 live agents -> immutable snapshot -> parallel neighbor search
@@ -49,11 +49,11 @@ live agents -> immutable snapshot -> parallel neighbor search
 - `events` stores infection events by step, including source, target, and amount.
 - `metrics` stores population counts, neighbor counts, event counts, and timing measurements.
 
-The simulation does not contain SQL statements. The experiment runner passes snapshots and metrics to the database adapter after each step. Each step is committed as one transaction, so a partial step is not presented as complete data.
+The simulation itself does not contain SQL statements. After each step, the experiment runner passes the snapshot and measurements to the database adapter. Each step is one transaction, so the database does not show a half-written step as if it were complete.
 
 ### Neighbor finding
 
-A naive search compares all pairs, which is approximately O(n²). That becomes impractical as the population grows. The Stage 2 finder uses a spatial hash:
+A direct search compares every pair, which is approximately O(n²). That becomes too expensive as the population grows. My Stage 2 finder uses a spatial hash:
 
 1. Put each agent into a grid cell based on its coordinates.
 2. For each agent, inspect only its own cell and cells within the interaction radius.
@@ -61,13 +61,13 @@ A naive search compares all pairs, which is approximately O(n²). That becomes i
 4. Run the chunks through a worker pool.
 5. Merge and sort the returned pairs so the result is deterministic.
 
-The grid reduces the number of distance calculations when agents are spread out. The worker chunks do not share mutable state, so the neighbor stage does not need locks.
+The grid cuts down the number of distance calculations when agents are spread out. The chunks do not share mutable state, so this stage does not need locks.
 
 ### Event processing
 
-Every nearby human-zombie pair becomes an infection event. Event creation is split into chunks, and a second worker stage reduces event amounts into per-human infection deltas. Only after all worker results are available does the main thread apply the deltas and convert a human into a zombie when the infection reaches 1.0.
+Every nearby human-zombie pair becomes an infection event. I split event creation into chunks, then use another worker stage to add the event amounts for each human. Once those worker results are ready, the main thread applies the totals and converts a human into a zombie when the infection reaches 1.0.
 
-This is a deliberate two-phase design. Parallel workers calculate independent results; the single commit point prevents two workers from racing while changing the same agent. Sorting event keys before the commit also makes repeated runs with the same seed easier to compare.
+I use two phases on purpose. Workers calculate independent results, and one commit point changes the live agents. That prevents two workers from updating the same human at the same time. Sorting the event keys also makes repeated runs with the same seed easier to compare.
 
 ## Running Stage 2
 
@@ -88,7 +88,7 @@ python3 stage2_experiment.py \
   --json stage2_results.json
 ```
 
-The command runs a serial and a parallel case for each population size. It prints average step, neighbor, and event times, and stores the same measurements in SQLite. The JSON file is convenient for making a chart or attaching results to a report.
+The command runs one serial case and one parallel case for each population size. It prints average step, neighbor, and event times, and stores the same measurements in SQLite. The JSON file is useful if I want to make a chart or include the results in a report.
 
 To run only the parallel cases:
 
@@ -98,7 +98,7 @@ python3 stage2_experiment.py --agents 10000 --steps 20 --workers 4 --parallel-on
 
 ## Experimental results
 
-The following results were produced from this repository on the development machine with seed `7`, a time step of `0.05`, four workers, ten steps per case, and SQLite persistence enabled:
+I produced the following results from this repository with seed `7`, a time step of `0.05`, four workers, ten steps per case, and SQLite persistence enabled:
 
 | Agents | Mode | Average step ms | Neighbor ms | Event ms | Final neighbor pairs | Final events |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
@@ -111,11 +111,11 @@ The following results were produced from this repository on the development mach
 
 ### Summary of the results
 
-- The spatial hash keeps the simulation runnable at 10,000 agents. The neighbor count grows with the population, but the code does not perform a full all-pairs comparison.
-- Serial and parallel modes return the same neighbor pairs and event counts for the same seed. That is a correctness check, not just a timing comparison.
-- The parallel neighbor stage is slightly faster at 5,000 and 10,000 agents, while the event stage is close to the serial result. At 1,000 agents, worker setup costs more than it saves.
-- This implementation uses Python threads. Because CPU-bound Python code is affected by the GIL, a thread pool is not guaranteed to be faster on every machine. The important design result is that the work is partitioned cleanly; a future process-pool or native-vectorized backend can use the same snapshot and commit interfaces without changing the simulation rules.
-- The database row counts are also part of the experiment. Every case stores one latest agent row per agent, one metrics row per step, and all generated events in `stage2_results.sqlite`.
+- The spatial hash keeps the simulation runnable at 10,000 agents. The neighbor count grows with the population, but the code does not check every possible pair.
+- Serial and parallel modes return the same neighbor pairs and event counts for the same seed. That checks correctness as well as timing.
+- The parallel neighbor stage is a little faster at 5,000 and 10,000 agents, while the event stage is close to the serial result. At 1,000 agents, setting up workers costs more than it saves.
+- This version uses Python threads. CPU-bound Python code is affected by the GIL, so the parallel version is not guaranteed to be faster on every computer. The useful design choice is that the work is already split behind a snapshot and commit boundary; a future process-pool version could reuse that boundary.
+- The database is part of the experiment too. Each case stores one current agent row per agent, one metrics row per step, and every generated event in `stage2_results.sqlite`.
 
 ## Demonstration plan
 
@@ -129,6 +129,6 @@ For a short demonstration, I would:
 6. Show the event reducer and explain why workers return deltas instead of mutating agents directly.
 7. Run `python3 -m unittest -v test_stage2.py` to show that the serial and parallel results agree and that SQLite persistence works.
 
-## Why the design scales better than the Stage 1 loop
+## Why this scales better than the Stage 1 loop
 
-Stage 1 has a small population and can afford direct list searches. Stage 2 makes the expensive parts explicit: finding nearby agents, turning contacts into events, applying state changes, and storing measurements. The spatial hash reduces unnecessary distance checks, worker chunks keep independent calculations separate, and SQLite gives the run a durable record. Those boundaries make it possible to replace one technique later without rewriting the population rules.
+Stage 1 has a small population and can afford direct list searches. In Stage 2 I separated the expensive parts: finding nearby agents, turning contacts into events, applying changes, and recording measurements. The spatial hash avoids unnecessary distance checks, worker chunks keep independent calculations separate, and SQLite gives each run a durable record. Because those pieces are separated, one technique can be replaced later without rewriting the population rules.
