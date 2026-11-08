@@ -183,7 +183,7 @@ The constants near the top of `simulation.py` make the prototype easy to tune:
 
 | File | Purpose |
 | --- | --- |
-| `simulation.py` | Python classes, rules, AI behavior, collisions, population changes, and game state |
+| `simulation.py` | Python classes, rules, agent behavior, collisions, population changes, and game state |
 | `main.py` | Tkinter interface, rendering, input, graph, and headless smoke-test entry point |
 | `state_storage.py` | `StateStore` interface plus in-memory, JSON-file, and no-op adapters |
 | `test_storage.py` | Round-trip and backend-independence tests |
