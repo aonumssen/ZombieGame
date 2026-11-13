@@ -1,9 +1,4 @@
-"""Core rules for the Python version of Outbreak: Last Light.
-
-This module intentionally has no GUI imports.  The simulation can therefore be
-tested, explained, or reused by a different interface without changing the
-game rules.
-"""
+"""Campaign rules, movement, and collisions for Outbreak: Last Light."""
 
 from __future__ import annotations
 
@@ -107,8 +102,7 @@ class Zombie(Entity):
         target = min(targets, key=lambda candidate: distance(self, candidate), default=player)
         dx, dy = direction(target.x - self.x, target.y - self.y)
 
-        # A small separation force keeps a large horde readable instead of making
-        # every zombie occupy exactly the same pixel.
+        # Push nearby zombies apart so the horde doesn't pile up on one spot.
         separation_x = 0.0
         separation_y = 0.0
         for other in zombies:
@@ -424,9 +418,8 @@ class Simulation:
             bullet.life = float(bullet_data["life"])
             self.bullets.append(bullet)
 
-        # Constructors use randomness for default values. Restore the exact
-        # generator state after reconstruction so the next simulation step is
-        # identical to the step that would have followed the original save.
+        # Rebuilding agents uses random values. Restore the saved generator
+        # state afterward so the next tick gets the right values.
         if isinstance(random_state, Mapping):
             internal = random_state.get("internal")
             if isinstance(internal, list):

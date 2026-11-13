@@ -80,13 +80,7 @@ def _now() -> str:
 
 
 class SQLiteStateStore:
-    """Store agent snapshots, events, and metrics in a SQLite database.
-
-    The store is intentionally separate from the simulation and the parallel
-    workers. It receives complete snapshots on the main thread and commits
-    each step in one transaction. SQLite WAL mode allows readers to inspect a
-    completed run without blocking a writer for long periods.
-    """
+    """Write the agent state, events, and timings for each tick in one transaction."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)

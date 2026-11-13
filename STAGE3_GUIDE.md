@@ -1,42 +1,35 @@
-# Outbreak Last Light · Stage 3
+# Stage 3: Parallel event processing
 
-Stage 3 adds target-based parallel event processing to the existing scalable Python simulation. An event represents an in-game human–zombie contact. Every contact for a given human goes to the same batch, and the main process applies each human's result at the end of the tick. The three backends use the same event algorithm.
+Two zombies can reach the same human in one tick. If both workers try to update that human directly, one update can overwrite the other. Stage 3 groups the contacts by human ID so each worker can calculate a complete total for the humans it gets.
 
-## Run it
-
-Requires Python 3.10 or newer. The headless simulation, tests, and benchmark use the standard library.
+## Try it
 
 ```bash
-python3 main.py
+python3 stage3_demo.py --agents 5000 --steps 5 --backend processes --workers 4
+python3 -m unittest discover -v
 ```
 
-Click **Start game** to play. Move with WASD or the arrow keys, aim with the mouse, and click or press Space to fire. Touch eight civilians to clear a level, then select **Start Level** to continue. Each level starts with 14 civilians and restores your health. Starting zombie counts rise by two per level, from 3 on Level 1 to 21 on Level 10, and reinforcements arrive faster. Clear Level 10 to win the campaign. Losing all health or too many civilians ends the run.
+Watch the event and conversion counts and the worker process IDs in the demo output. To try another mode, pass `--backend serial` or `--backend threads`. Add `--database stage3_demo.sqlite` to save the ordered events, current agents, and timings.
 
-**Save state** and **Load state** include your current level and progress. Run `python3 main.py --json-checkpoint checkpoint.json` to keep a save after closing the game.
+For the ten-level desktop campaign, run `python3 main.py`. See the [game guide](PROJECT_GUIDE.md) for controls and checkpoints.
 
-## Run the tests and Stage 3 benchmark
+## What a worker gets
+
+1. Move the agents, take a snapshot, and use the Stage 2 grid to find nearby pairs.
+2. Keep the human–zombie pairs and group them by human ID. Within a group, sort contacts by zombie ID. Ties stay in the order they arrived.
+3. Pack whole groups into batches. A human with 20 contacts takes more work than one with two, so the batch limit uses contact count. The processor aims for about four batches per worker. A human whose contacts exceed the limit still stays in one batch.
+4. For each contact, calculate `0.12 * max(0, 1 - distance / 28)` and add it to the human's total in the same order as Stage 2 serial. Serial runs use one batch on the main process. The threaded and process modes reuse a pool when there is enough work to split. Process workers receive serialized batches and return compact arrays of amounts.
+5. Wait for the results, rebuild the event log in human and zombie ID order, and update each affected human once. A human at 1.0 infection becomes a zombie and can contribute contacts on the next tick. If a worker fails, the tick restores positions and velocities and leaves the event updates unapplied.
+
+Grouping and applying the results still take time on the main process. A single human with a lot of contacts can also make one batch take longer than the others.
+
+## Benchmark
 
 ```bash
-python3 -m unittest discover -v
-python3 stage3_demo.py --agents 5000 --steps 5 --backend processes --workers 4
 python3 stage3_experiment.py --output reproduced_results.json
 ```
 
-The demo prints each tick's population, event and conversion counts, elapsed times, and worker process IDs. Use `--backend serial` or `--backend threads` to change the execution mode. Add `--database stage3_demo.sqlite` to store ordered events, current agent state, and step metrics. Run `python3 main.py --headless` for a smoke test of the desktop campaign engine.
-
-## Event algorithm
-
-1. Advance positions, take an immutable agent snapshot, and find candidate pairs using the Stage 2 spatial grid.
-2. Keep mixed human–zombie pairs and group them by the human's ID. Sort targets by ID and each target's contacts by zombie ID. Equal source IDs preserve input order.
-3. Make batches of whole targets using contact count as the cost estimate. The default contact budget is the ceiling of total contacts divided by four times the worker count. A target with more contacts than the budget stays intact.
-4. The serial backend evaluates one batch on the caller. The threaded and process backends submit batches to a reusable executor when there are multiple batches and workers. Workers compute contact amounts and left-to-right totals in isolated batches. The process backend uses spawn and transfers serialized batches and compact arrays of results.
-5. Wait for all batches, assemble the event log in target/source order, and apply one update per human on the caller. Conversions take effect for source eligibility in the next tick. If event computation fails, Stage 3 restores positions and velocities and propagates the error without advancing the tick.
-
-Every accepted contact uses `0.12 * max(0, 1 - distance / 28)` in the game. Each human's previous infection plus the ordered total is capped at 1.0. A human who reaches that threshold becomes a zombie and the infection meter resets. A single target is indivisible, which bounds the amount of parallelism available in a hotspot. Sorting, batch setup, data transfer, logging, and commit contribute to the elapsed event time.
-
-## Measured results
-
-Median milliseconds per event phase, including grouping, worker dispatch and waits, logging, and commit. Each cell uses four measured ticks from each of three seeds after one warm-up tick per run. All five modes match the Stage 2 serial replay for every tick in each workload. Timings were taken on macOS 26.1 arm64 with CPython 3.15.0 and eight logical CPUs.
+Times are medians in milliseconds for the event phase, including grouping, dispatch, logging, and state updates. Each case measured four ticks after one warm-up tick for each of three seeds. The original run used CPython 3.15.0 on macOS 26.1 arm64 with eight logical CPUs. SQLite writes and replay hashing were outside the timers.
 
 | Agents and placement | Median events | Stage 2 serial | Stage 3 serial | 4 threads | 2 processes | 4 processes |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -45,18 +38,17 @@ Median milliseconds per event phase, including grouping, worker dispatch and wai
 | 30,000 uniform | 89,337.5 | 135.30 | 177.43 | 183.85 | 195.11 | 200.20 |
 | 15,000 clustered | 36,192 | 74.30 | 47.02 | 51.21 | 52.95 | 51.73 |
 
-At 15,000 clustered agents, the four-process event phase was 1.44× as fast as the Stage 2 baseline. Stage 3 serial was 1.58× as fast as that same baseline. The four-process backend recorded four distinct worker PIDs within a measured tick in every workload. See `stage3_results.json` for the full tick timings, event counts, conversions, worker IDs, and replay hashes. SQLite I/O and replay hashing were outside the benchmark timers.
+The four-process run matched Stage 2 serial in every workload, down to the event order and agent state. It recorded four worker PIDs within a measured tick in every workload. On the clustered case it took 51.73 ms, compared with 74.30 ms for Stage 2 serial. Stage 3 serial took just 47.02 ms on that same case. The batch algorithm helped there, and the extra process work did not make it faster.
 
-## Files
+See [stage3_results.json](stage3_results.json) for timings by tick, conversion counts, worker IDs, and replay hashes.
 
-| File | Purpose |
+## Where to look
+
+| File | What to look for |
 | --- | --- |
-| `stage3_events.py` | Target grouping, contact-weighted batches, worker evaluation, deterministic commit |
-| `stage3_simulation.py` | Stage 3 engine and failed-tick recovery |
-| `stage3_demo.py` | Command-line demonstration with optional SQLite output |
-| `stage3_experiment.py` | Repeatable four-workload benchmark with exact replay checks |
-| `stage3_results.json` | Raw benchmark data and aggregate results |
-| `test_stage3.py` | Stage 3 correctness and integration tests |
-| `test_campaign.py` | Campaign progression and checkpoint tests |
-| `stage2_*.py` | Stage 2 baseline, shared simulation, and SQLite adapter |
-| `main.py`, `simulation.py`, `state_storage.py` | Desktop game and checkpoint adapters |
+| `stage3_events.py` | Grouping, batching, and applying results |
+| `stage3_simulation.py` | Tick integration and what happens when a worker fails |
+| `stage3_demo.py` | Terminal demo and optional SQLite output |
+| `stage3_experiment.py` | Workloads, timers, and serial replay comparisons |
+| `test_stage3.py` | Tests for event ordering, conversions, failure recovery, and replay |
+| `test_campaign.py` | Tests for the desktop campaign and checkpoints |

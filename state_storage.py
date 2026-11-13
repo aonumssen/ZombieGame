@@ -1,9 +1,4 @@
-"""Storage adapters for simulation state.
-
-The simulation depends only on :class:`StateStore`.  Concrete adapters can
-store the same state in memory, in a JSON file, or in another backend added
-later without changing the simulation rules.
-"""
+"""Save and load campaign checkpoints in memory or in a JSON file."""
 
 from __future__ import annotations
 
@@ -53,12 +48,7 @@ class NullStateStore(StateStore):
 
 
 class InMemoryStateStore(StateStore):
-    """Fast process-local storage.
-
-    Deep copies make the adapter behave like a real persistence boundary: a
-    caller cannot mutate the stored checkpoint merely by keeping a reference
-    to the dictionary it passed to ``save``.
-    """
+    """Keep a checkpoint in memory and copy it on save and load."""
 
     def __init__(self) -> None:
         self._state: Optional[StateData] = None

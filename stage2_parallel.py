@@ -1,11 +1,4 @@
-"""Parallel building blocks for the Stage 2 population simulation.
-
-The workers in this module never mutate the live simulation. They receive an
-immutable snapshot and return ordinary Python values. The main simulation then
-applies those values in a deterministic order. That rule keeps the parallel
-implementation safe and makes the serial and parallel versions easy to test
-against each other.
-"""
+"""Find neighbors and calculate infection from a read-only agent snapshot."""
 
 from __future__ import annotations
 
@@ -39,7 +32,7 @@ class NeighborPair:
 
 @dataclass(frozen=True, slots=True)
 class SimulationEvent:
-    """An interaction that can be processed independently of other events."""
+    """One contact from a source agent to a target agent."""
 
     event_type: str
     source_id: int

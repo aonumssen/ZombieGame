@@ -9,7 +9,7 @@ from stage3_events import Backend, TargetEventProcessor
 
 
 class Stage3Simulation(ScalableSimulation):
-    """Reuse Stage 2 movement, neighbors, metrics, and SQLite-compatible output."""
+    """Use the Stage 2 tick with a different event processor."""
 
     def __init__(self, *, backend: Backend = "processes", workers: int = 4, **options) -> None:
         # Keep neighbor finding serial so event backends can be compared directly.
@@ -31,7 +31,7 @@ class Stage3Simulation(ScalableSimulation):
         try:
             metrics = super().step(dt)
         except Exception:
-            # The event processor commits only after every worker succeeds.
+            # Event changes wait for all workers. Roll back movement too.
             for agent, x, y, vx, vy in motion:
                 agent.x, agent.y, agent.vx, agent.vy = x, y, vx, vy
             raise

@@ -1,4 +1,4 @@
-"""Target-owned event batches with interchangeable serial, thread, and process execution."""
+"""Calculate infection in batches, keeping each human's contacts together."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def _calculate_batch(
         for _, distance in contacts:
             amount = 0.12 * max(0.0, 1.0 - distance / radius)
             amounts.append(amount)
-            # Match the Stage 2 serial floating-point addition order.
+            # Add in Stage 2's order so rounding near 1.0 matches.
             total += amount
         totals.append(total)
     return amounts, totals, os.getpid()
@@ -52,7 +52,7 @@ def _make_batches(
 
 
 class TargetEventProcessor:
-    """Group by target, compute effects in batches, then commit on the caller."""
+    """Batch contacts by human and apply the totals after all batches finish."""
 
     def __init__(self, backend: Backend = "processes", workers: int = 4) -> None:
         if backend not in ("serial", "threads", "processes"):
@@ -102,7 +102,7 @@ class TargetEventProcessor:
             by_target.setdefault(target, []).append((source, pair.distance))
             contact_count += 1
 
-        # Stable sort preserves input order even for repeated source IDs.
+        # Sort by zombie ID within each human's group. Ties keep their input order.
         groups = sorted(by_target.items())
         for _, contacts in groups:
             contacts.sort(key=lambda contact: contact[0])
@@ -125,7 +125,7 @@ class TargetEventProcessor:
                     self._pool = ThreadPoolExecutor(max_workers=self.workers)
             try:
                 pending = [self._pool.submit(_calculate_batch, batch, radius) for batch in batches]
-                # A worker failure leaves the event batch uncommitted.
+                # Wait for every result before changing any live agent.
                 results = [future.result() for future in pending]
             except BrokenProcessPool:
                 self._pool.shutdown(cancel_futures=True)
