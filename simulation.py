@@ -22,6 +22,7 @@ STARTING_CIVILIANS = 14
 STARTING_ZOMBIES = 3
 RESCUE_TARGET = 8
 MAX_ZOMBIES = 28
+FINAL_LEVEL = 10
 
 
 def clamp(value: float, low: float, high: float) -> float:
@@ -202,47 +203,43 @@ class Simulation:
         self.rng = random.Random(seed)
         self.state_store = state_store or NullStateStore()
         self.checkpoint_interval = max(0.0, checkpoint_interval)
-        self.player = Player()
-        self.civilians: list[Civilian] = []
-        self.zombies: list[Zombie] = []
-        self.bullets: list[Bullet] = []
-        self.population_history: list[tuple[int, int]] = []
-        self.state = "ready"
-        self.elapsed = 0.0
-        self.rescued = 0
-        self.spawn_timer = 0.0
-        self.history_timer = 0.0
-        self.checkpoint_timer = 0.0
-        self.last_event = "Press Start to begin the rescue."
         self.reset()
 
     def reset(self) -> None:
-        self.player = Player()
-        self.civilians = []
-        self.zombies = []
-        self.bullets = []
-        self.population_history = []
-        self.state = "ready"
         self.elapsed = 0.0
+        self.checkpoint_timer = 0.0
+        self._prepare_level(1)
+        self.state = "ready"
+        self.last_event = "Press Start to begin the rescue."
+
+    def _prepare_level(self, level: int) -> None:
+        self.level = level
+        self.level_elapsed = 0.0
+        self.player = Player()
+        self.civilians: list[Civilian] = []
+        self.bullets: list[Bullet] = []
+        self.population_history: list[tuple[int, int]] = []
         self.rescued = 0
         self.spawn_timer = 0.0
         self.history_timer = 0.0
-        self.checkpoint_timer = 0.0
-        self.last_event = "Press Start to begin the rescue."
 
         for _ in range(STARTING_CIVILIANS):
             x, y = self._random_point(min_distance=105)
             self.civilians.append(Civilian(x, y, self.rng))
-        for _ in range(STARTING_ZOMBIES):
-            self.zombies.append(self._spawn_edge_zombie())
+        self.zombies = [
+            self._spawn_edge_zombie() for _ in range(STARTING_ZOMBIES + 2 * (level - 1))
+        ]
         self._record_history(force=True)
 
     def start(self) -> None:
         if self.state in {"won", "lost"}:
             self.reset()
+        if self.state == "level_cleared":
+            self._prepare_level(self.level + 1)
+            self.state = "ready"
         if self.state == "ready":
             self.state = "running"
-            self.last_event = "Rescue civilians and survive the outbreak."
+            self.last_event = f"Level {self.level}: rescue {RESCUE_TARGET} civilians."
         elif self.state == "paused":
             self.state = "running"
             self.last_event = "Simulation resumed."
@@ -273,6 +270,7 @@ class Simulation:
             return
         dt = clamp(dt, 0.0, 0.08)
         self.elapsed += dt
+        self.level_elapsed += dt
         self.player.update(dt, keys)
         for civilian in self.civilians:
             civilian.update(dt, self.zombies, self.rng)
@@ -284,9 +282,10 @@ class Simulation:
         self._resolve_bullets()
         self._resolve_civilian_contacts(dt)
         self._resolve_player_contacts()
-        self._spawn_over_time(dt)
-        self._record_history()
         self._check_end_state()
+        if self.state == "running":
+            self._spawn_over_time(dt)
+        self._record_history()
         self._maybe_checkpoint(dt)
 
     def snapshot(self) -> dict[str, object]:
@@ -294,6 +293,9 @@ class Simulation:
         return {
             "state": self.state,
             "elapsed": self.elapsed,
+            "level": self.level,
+            "final_level": FINAL_LEVEL,
+            "rescue_target": RESCUE_TARGET,
             "humans": len(self.civilians),
             "zombies": len(self.zombies),
             "rescued": self.rescued,
@@ -318,7 +320,7 @@ class Simulation:
     def to_state(self) -> StateData:
         """Convert agents, environment, and runtime into storage-neutral data."""
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "environment": {
                 "width": WORLD_WIDTH,
                 "height": WORLD_HEIGHT,
@@ -327,6 +329,8 @@ class Simulation:
             "runtime": {
                 "state": self.state,
                 "elapsed": self.elapsed,
+                "level": self.level,
+                "level_elapsed": self.level_elapsed,
                 "rescued": self.rescued,
                 "spawn_timer": self.spawn_timer,
                 "history_timer": self.history_timer,
@@ -364,7 +368,8 @@ class Simulation:
         }
 
     def _restore_state(self, state: Mapping[str, Any]) -> None:
-        if state.get("schema_version") != 1:
+        version = state.get("schema_version")
+        if version not in (1, 2):
             raise ValueError("Unsupported simulation state schema")
         environment = state.get("environment", {})
         if (
@@ -378,6 +383,9 @@ class Simulation:
         agents = state["agents"]
         if not isinstance(runtime, Mapping) or not isinstance(agents, Mapping):
             raise ValueError("Simulation state is missing runtime or agent data")
+        level = 1 if version == 1 else int(runtime["level"])
+        if not 1 <= level <= FINAL_LEVEL:
+            raise ValueError("Saved state contains an invalid campaign level")
 
         random_state = runtime.get("random_state")
 
@@ -432,11 +440,15 @@ class Simulation:
 
         self.state = str(runtime["state"])
         self.elapsed = float(runtime["elapsed"])
+        self.level = level
+        self.level_elapsed = self.elapsed if version == 1 else float(runtime["level_elapsed"])
         self.rescued = int(runtime["rescued"])
         self.spawn_timer = float(runtime["spawn_timer"])
         self.history_timer = float(runtime["history_timer"])
         self.checkpoint_timer = float(runtime.get("checkpoint_timer", 0.0))
         self.last_event = str(runtime["last_event"])
+        if version == 1 and self.state == "won":
+            self._mark_level_cleared()
         self.population_history = [
             (int(point[0]), int(point[1])) for point in runtime["population_history"]
         ]
@@ -490,7 +502,12 @@ class Simulation:
             x, y = self.rng.uniform(30, WORLD_WIDTH - 30), WORLD_HEIGHT - WORLD_MARGIN
         else:
             x, y = WORLD_MARGIN, self.rng.uniform(30, WORLD_HEIGHT - 30)
-        return Zombie(x, y, self.rng, self.elapsed)
+        return self._new_zombie(x, y)
+
+    def _new_zombie(self, x: float, y: float) -> Zombie:
+        zombie = Zombie(x, y, self.rng, self.level_elapsed)
+        zombie.speed += 2 * (self.level - 1)
+        return zombie
 
     def _resolve_bullets(self) -> None:
         remaining: list[Bullet] = []
@@ -509,11 +526,12 @@ class Simulation:
         self.bullets = remaining
 
     def _resolve_civilian_contacts(self, dt: float) -> None:
-        rescued_now: list[Civilian] = []
+        remaining: list[Civilian] = []
         infected_now: list[Civilian] = []
         for civilian in self.civilians:
             if distance(self.player, civilian) <= self.player.radius + civilian.radius + 5:
-                rescued_now.append(civilian)
+                self.rescued += 1
+                self.last_event = f"Civilian rescued ({self.rescued}/{RESCUE_TARGET})."
                 continue
             nearest = min(self.zombies, key=lambda z: distance(civilian, z), default=None)
             if nearest is not None and distance(civilian, nearest) < civilian.radius + nearest.radius + 3:
@@ -522,17 +540,13 @@ class Simulation:
                 civilian.infection = max(0.0, civilian.infection - dt * 0.16)
             if civilian.infection >= 1.0:
                 infected_now.append(civilian)
+            else:
+                remaining.append(civilian)
 
-        for civilian in rescued_now:
-            if civilian in self.civilians:
-                self.civilians.remove(civilian)
-                self.rescued += 1
-                self.last_event = f"Civilian rescued ({self.rescued}/{RESCUE_TARGET})."
+        self.civilians = remaining
         for civilian in infected_now:
-            if civilian in self.civilians:
-                self.civilians.remove(civilian)
-                self.zombies.append(Zombie(civilian.x, civilian.y, self.rng, self.elapsed))
-                self.last_event = "A civilian was infected and joined the horde."
+            self.zombies.append(self._new_zombie(civilian.x, civilian.y))
+            self.last_event = "A civilian was infected and joined the horde."
 
     def _resolve_player_contacts(self) -> None:
         for zombie in self.zombies:
@@ -546,7 +560,8 @@ class Simulation:
 
     def _spawn_over_time(self, dt: float) -> None:
         self.spawn_timer += dt
-        interval = max(2.25, 5.8 - self.elapsed * 0.035)
+        base_interval = 5.8 - 0.4 * (self.level - 1)
+        interval = max(base_interval / 2, base_interval - self.level_elapsed * 0.035)
         if self.spawn_timer >= interval and len(self.zombies) < MAX_ZOMBIES:
             self.spawn_timer = 0.0
             self.zombies.append(self._spawn_edge_zombie())
@@ -562,12 +577,19 @@ class Simulation:
         self.population_history = self.population_history[-42:]
 
     def _check_end_state(self) -> None:
-        if self.rescued >= RESCUE_TARGET:
-            self.state = "won"
-            self.last_event = "Victory! Eight civilians reached safety."
-        elif self.player.health <= 0:
+        if self.player.health <= 0:
             self.state = "lost"
             self.last_event = "The responder was overwhelmed."
-        elif not self.civilians:
+        elif self.rescued >= RESCUE_TARGET:
+            self._mark_level_cleared()
+        elif self.rescued + len(self.civilians) < RESCUE_TARGET:
             self.state = "lost"
-            self.last_event = "No civilians remain in the city."
+            self.last_event = "Too few civilians remain to reach the rescue goal."
+
+    def _mark_level_cleared(self) -> None:
+        if self.level == FINAL_LEVEL:
+            self.state = "won"
+            self.last_event = "Victory! You cleared all 10 levels."
+        else:
+            self.state = "level_cleared"
+            self.last_event = f"Level {self.level} cleared. Start Level {self.level + 1} when ready."

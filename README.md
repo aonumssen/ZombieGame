@@ -1,6 +1,6 @@
 # Outbreak Last Light
 
-This is my Python version of the CPS3100 Zombie Game Stage 1 assignment. It is a small rescue game and a population simulation. I built it as a solo project.
+This is my Python project for the CPS3100 Zombie Game assignment. It includes a ten-level rescue campaign and a headless population simulation. I built it as a solo project.
 
 You play an emergency responder trying to rescue civilians while zombies move around the city, infect people, and continue to appear over time. The simulation and the desktop window are both written in Python.
 
@@ -12,7 +12,7 @@ GitHub repository: <https://github.com/aonumssen/ZombieGame>
 
 ## Run the game
 
-The project uses Python's standard library, so there are no third-party packages to install.
+Use Python 3.10 or newer. The desktop game requires Tkinter. The project uses Python's standard library.
 
 1. Download or clone this repository.
 2. Open a terminal in the repository folder.
@@ -57,7 +57,7 @@ python3 -m unittest -v test_storage.py
 - **P** or **Pause** — pause/resume
 - Touch civilians to rescue them
 
-The goal is to rescue 8 civilians. The game ends if the responder loses all health or if no humans remain.
+Rescue eight civilians in each level, then click **Start Level** to continue. Your health refills between levels. Level 1 starts with three zombies and Level 10 starts with 21, with faster reinforcements as you advance. Clear Level 10 to win. The run ends if the responder loses all health or too few civilians remain to meet the rescue goal.
 
 ## What happens during a game
 
@@ -123,3 +123,15 @@ The Stage 2 extension scales the population model to thousands of agents. It add
 See [`STAGE2_GUIDE.md`](STAGE2_GUIDE.md) for the design, commands, measured results, and demonstration plan.
 
 For a submission-ready explanation of the two required points, see [`STAGE2_REPORT.md`](STAGE2_REPORT.md). To run the short demonstration, use `python3 stage2_demo.py`.
+
+## Stage 3
+
+The headless Stage 3 engine groups events by civilian target and uses a serial, threaded, or process backend with a deterministic commit. The desktop game includes the ten-level campaign and saves campaign progress in checkpoints.
+
+```bash
+python3 -m unittest discover -v
+python3 stage3_demo.py --agents 5000 --steps 5 --workers 4
+python3 stage3_experiment.py --output reproduced_results.json
+```
+
+See the [Stage 3 guide](STAGE3_GUIDE.md) for the algorithm, benchmark setup, and measured results. The [Stage 3 report and research proposal](Zombie_Game_Stage_3_Report_and_Proposal.pdf) includes the design, results, and proposed follow-up study.

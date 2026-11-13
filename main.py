@@ -23,7 +23,6 @@ except ModuleNotFoundError:  # Some minimal Python builds omit the Tk bindings.
     ttk = None
 
 from simulation import (
-    RESCUE_TARGET,
     WORLD_HEIGHT,
     WORLD_WIDTH,
     Simulation,
@@ -80,40 +79,39 @@ class ZombieGameApp(tk.Tk):
         panel.pack_propagate(False)
 
         tk.Label(panel, text="OUTBREAK", bg=PANEL, fg=TEXT, font=("Helvetica", 22, "bold")).pack(anchor="w")
-        tk.Label(panel, text="LAST LIGHT  •  PYTHON EDITION", bg=PANEL, fg=CYAN, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(0, 18))
+        tk.Label(panel, text="LAST LIGHT", bg=PANEL, fg=CYAN, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(0, 10))
+
+        self.level_var = tk.StringVar()
+        tk.Label(panel, textvariable=self.level_var, bg=PANEL, fg=CYAN, font=("Helvetica", 12, "bold")).pack(anchor="w", pady=(0, 8))
 
         self.start_button = ttk.Button(panel, text="Start game", command=self._start_game)
         self.start_button.pack(fill="x", pady=(0, 8))
         self.pause_button = ttk.Button(panel, text="Pause", command=self._toggle_pause)
-        self.pause_button.pack(fill="x", pady=(0, 18))
+        self.pause_button.pack(fill="x", pady=(0, 8))
         checkpoint_row = tk.Frame(panel, bg=PANEL)
-        checkpoint_row.pack(fill="x", pady=(0, 16))
+        checkpoint_row.pack(fill="x", pady=(0, 10))
         ttk.Button(checkpoint_row, text="Save state", command=self._save_checkpoint).pack(side="left", expand=True, fill="x", padx=(0, 4))
         ttk.Button(checkpoint_row, text="Load state", command=self._load_checkpoint).pack(side="left", expand=True, fill="x", padx=(4, 0))
 
         self.status_var = tk.StringVar()
-        tk.Label(panel, textvariable=self.status_var, bg=PANEL, fg=TEXT, wraplength=245, justify="left", font=("Helvetica", 10)).pack(anchor="w", pady=(0, 16))
+        tk.Label(panel, textvariable=self.status_var, bg=PANEL, fg=TEXT, wraplength=245, justify="left", font=("Helvetica", 10)).pack(anchor="w", pady=(0, 8))
 
         self.humans_var = tk.StringVar()
         self.zombies_var = tk.StringVar()
         self.rescued_var = tk.StringVar()
         for variable in (self.humans_var, self.zombies_var, self.rescued_var):
-            tk.Label(panel, textvariable=variable, bg=PANEL_LIGHT, fg=TEXT, anchor="w", padx=10, pady=7, font=("Helvetica", 11, "bold")).pack(fill="x", pady=2)
+            tk.Label(panel, textvariable=variable, bg=PANEL_LIGHT, fg=TEXT, anchor="w", padx=10, pady=4, font=("Helvetica", 11, "bold")).pack(fill="x", pady=2)
 
         tk.Label(panel, text="RESPONDER HEALTH", bg=PANEL, fg=MUTED, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(16, 4))
         self.health_bar = tk.Canvas(panel, width=245, height=14, bg="#0e1520", highlightthickness=0)
         self.health_bar.pack(fill="x")
 
         tk.Label(panel, text="POPULATION HISTORY", bg=PANEL, fg=MUTED, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(16, 4))
-        self.graph = tk.Canvas(panel, width=245, height=120, bg="#0e1520", highlightthickness=0)
+        self.graph = tk.Canvas(panel, width=245, height=84, bg="#0e1520", highlightthickness=0)
         self.graph.pack(fill="x")
 
-        tk.Label(panel, text="Controls", bg=PANEL, fg=MUTED, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(16, 4))
-        tk.Label(panel, text="WASD / arrows  Move\nSpace / click  Fire\nP  Pause or resume\nSave/Load state  Checkpoint\nRescue civilians by touching them", bg=PANEL, fg=TEXT, justify="left", font=("Helvetica", 10)).pack(anchor="w")
-
-        tk.Label(panel, text="Python standard library only\nSimulation engine is separate from UI", bg=PANEL, fg=MUTED, justify="left", font=("Helvetica", 9), wraplength=245).pack(anchor="w", side="bottom")
-
-        ttk.Label(outer, text="Python OO simulation • live population dynamics • no third-party packages", background=BG, foreground=MUTED).grid(row=2, column=0, columnspan=2, sticky="w", pady=(10, 0))
+        tk.Label(panel, text="Controls", bg=PANEL, fg=MUTED, font=("Helvetica", 9, "bold")).pack(anchor="w", pady=(10, 4))
+        tk.Label(panel, text="WASD / arrows  Move\nSpace / click  Fire\nP  Pause or resume\nTouch civilians to rescue them", bg=PANEL, fg=TEXT, justify="left", font=("Helvetica", 10)).pack(anchor="w")
 
     def _bind_controls(self) -> None:
         self.canvas.bind("<Motion>", self._aim)
@@ -124,7 +122,7 @@ class ZombieGameApp(tk.Tk):
 
     def _start_game(self) -> None:
         self.simulation.start()
-        self.start_button.configure(text="Restart" if self.simulation.state in {"won", "lost"} else "Running")
+        self.focus_set()
 
     def _toggle_pause(self) -> None:
         self.simulation.toggle_pause()
@@ -211,10 +209,13 @@ class ZombieGameApp(tk.Tk):
             subtitle = "Press Start game to begin"
         elif self.simulation.state == "paused":
             title = "PAUSED"
-            subtitle = "Press P or Pause to resume"
+            subtitle = "Press P or select Resume to continue"
+        elif self.simulation.state == "level_cleared":
+            title = f"LEVEL {self.simulation.level} CLEARED"
+            subtitle = f"Select Start Level {self.simulation.level + 1} to continue"
         elif self.simulation.state == "won":
             title = "VICTORY"
-            subtitle = "Press Restart to play again"
+            subtitle = f"All {self.simulation.level} levels cleared. Select Restart to play again."
         else:
             title = "CITY OVERRUN"
             subtitle = "Press Restart to try again"
@@ -225,11 +226,25 @@ class ZombieGameApp(tk.Tk):
     def _update_panel(self) -> None:
         snapshot = self.simulation.snapshot()
         self.status_var.set(snapshot["message"])
+        self.level_var.set(f"LEVEL {snapshot['level']} / {snapshot['final_level']}")
         self.humans_var.set(f"HUMANS   {snapshot['humans']:02d}")
         self.zombies_var.set(f"ZOMBIES  {snapshot['zombies']:02d}")
-        self.rescued_var.set(f"RESCUED  {snapshot['rescued']:02d} / {RESCUE_TARGET}")
-        self.pause_button.configure(text="Resume" if self.simulation.state == "paused" else "Pause")
-        self.start_button.configure(text="Restart" if self.simulation.state in {"won", "lost"} else ("Start game" if self.simulation.state == "ready" else "Running"))
+        self.rescued_var.set(f"RESCUED  {snapshot['rescued']:02d} / {snapshot['rescue_target']}")
+        state = snapshot["state"]
+        self.pause_button.configure(
+            text="Resume" if state == "paused" else "Pause",
+            state="normal" if state in {"running", "paused"} else "disabled",
+        )
+        start_text = {
+            "ready": "Start game",
+            "level_cleared": f"Start Level {self.simulation.level + 1}",
+            "won": "Restart",
+            "lost": "Restart",
+        }.get(state, "Game started")
+        self.start_button.configure(
+            text=start_text,
+            state="disabled" if state in {"running", "paused"} else "normal",
+        )
 
         self.health_bar.delete("all")
         health = snapshot["health"]
@@ -242,11 +257,12 @@ class ZombieGameApp(tk.Tk):
         if len(history) < 2:
             return
         maximum = max(1, max(max(humans, zombies) for humans, zombies in history))
-        width, height = 245, 120
+        width = int(self.graph["width"])
+        height = int(self.graph["height"])
         self.graph.create_line(8, height - 8, width - 8, height - 8, fill="#31445e")
         self.graph.create_text(10, 8, text="humans", anchor="nw", fill=CYAN, font=("Helvetica", 8))
         self.graph.create_text(width - 10, 8, text="zombies", anchor="ne", fill=RED, font=("Helvetica", 8))
-        for index, color, position in ((0, CYAN, 1), (1, RED, 0)):
+        for index, color in ((0, CYAN), (1, RED)):
             points: list[float] = []
             for point_index, values in enumerate(history):
                 x = 8 + point_index * (width - 16) / (len(history) - 1)
@@ -264,7 +280,8 @@ def run_headless() -> None:
     snapshot = simulation.snapshot()
     print("Python simulation smoke test passed")
     print(
-        f"state={snapshot['state']} humans={snapshot['humans']} "
+        f"state={snapshot['state']} level={snapshot['level']}/{snapshot['final_level']} "
+        f"humans={snapshot['humans']} "
         f"zombies={snapshot['zombies']} rescued={snapshot['rescued']} "
         f"history_points={len(simulation.population_history)}"
     )

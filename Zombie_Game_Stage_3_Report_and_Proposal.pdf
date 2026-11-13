@@ -1,0 +1,269 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 4 /Kids [6 0 R 8 0 R 10 0 R 12 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Title (Zombie Game Stage 3: Implementation and Research Proposal) /Author (Anthony Numssen) >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 4479 >>
+stream
+BT 0.031 0.345 0.365 rg /F2 10 Tf 1 0 0 1 52 739 Tm (ZOMBIE GAME  /  STAGE 3 IMPLEMENTATION) Tj ET
+BT 0.086 0.122 0.176 rg /F2 30 Tf 1 0 0 1 52 696 Tm (Parallel event processing) Tj ET
+BT 0.302 0.365 0.431 rg /F1 12 Tf 1 0 0 1 52 670 Tm (Design, correctness tests, and benchmark results) Tj ET
+BT 0.302 0.365 0.431 rg /F1 10 Tf 1 0 0 1 52 647 Tm (Anthony Numssen  |  November 13, 2026) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 621 Tm (Design goal) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 602 Tm (Outbreak Last Light models contact between humans and zombies in a fixed-step simulation.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 588 Tm (Several zombies can affect the same human in one tick. Stage 3 processes independent targets) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 574 Tm (concurrently and reproduces the Stage 2 serial event log and simulation state.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 553 Tm (Algorithm) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 534 Tm (1) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 534 Tm (Snapshot and identify contacts) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 519 Tm (Advance positions, take an immutable snapshot, and reuse the Stage 2 spatial grid. Keep) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 505 Tm (mixed human-zombie pairs and assign each contact to its human target.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 485 Tm (2) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 485 Tm (Group, order, and batch) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 470 Tm (Sort human targets by ID and each human's contacts by zombie ID. Pack whole targets into) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 456 Tm (batches using contact count as an estimate of work. Aim for about four batches per worker.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 436 Tm (3) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 436 Tm (Evaluate in parallel) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 421 Tm (A reusable process or thread pool evaluates each batch. For each target, sum contact) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 407 Tm (amounts in source order using the existing rule, 0.12 × max\(0, 1 - distance / 28\). Workers) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 393 Tm (return ordered amounts and totals.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 373 Tm (4) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 373 Tm (Synchronize and commit) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 358 Tm (After all workers succeed, the caller rebuilds the ordered event log and commits one update) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 344 Tm (per affected human. Reaching 1.0 converts the human. A new zombie can contribute events) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 330 Tm (from the next tick.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 310 Tm (Correctness and cost) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 291 Tm (Exclusive target ownership avoids conflicting writes. Fixed source order also preserves) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 277 Tm (floating-point addition at the conversion threshold. A worker error leaves the event batch) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 263 Tm (uncommitted, and the simulation restores positions and velocities for retry.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 242 Tm (For P candidate pairs, T affected humans, and k contacts per target, the event stage scans P) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 228 Tm (pairs, sorts T target IDs and each target's contacts, and performs linear contact work after) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 214 Tm (sorting. One unusually heavy target can delay its whole batch.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 193 Tm (Threads share process memory and contend for the GIL on standard CPython. Processes can execute) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 179 Tm (Python on separate cores and pay for startup and serialization. The caller performs grouping,) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 165 Tm (logging, and commit in both modes.) Tj ET
+0.816 0.854 0.894 RG 0.65 w 52 49 m 560 49 l S
+BT 0.302 0.365 0.431 rg /F2 8.5 Tf 1 0 0 1 52 31 Tm (OUTBREAK LAST LIGHT  /  STAGE 3 IMPLEMENTATION) Tj ET
+BT 0.302 0.365 0.431 rg /F2 9 Tf 1 0 0 1 549 31 Tm (1) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 6264 >>
+stream
+BT 0.031 0.345 0.365 rg /F2 10 Tf 1 0 0 1 52 739 Tm (ZOMBIE GAME  /  STAGE 3 IMPLEMENTATION) Tj ET
+BT 0.086 0.122 0.176 rg /F2 30 Tf 1 0 0 1 52 696 Tm (Tests and measured results) Tj ET
+BT 0.302 0.365 0.431 rg /F1 12 Tf 1 0 0 1 52 670 Tm (All modes reproduced the same simulation state at every tick) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 634 Tm (Experimental setup) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 615 Tm (I tested 5,000, 15,000, and 30,000 uniformly placed agents, plus 15,000 agents with 30% placed) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 601 Tm (in a 400 × 400 hotspot inside a 2,000 × 2,000 world. Each case used seeds 7, 23, and 101, a) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 587 Tm (0.05-second step, one warm-up tick, and four measured ticks per seed. The benchmark used CPython) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 573 Tm (3.15.0 on macOS arm64 with eight logical CPUs.) Tj ET
+0.031 0.345 0.365 rg 52 538 508 26 re f
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 60 547 Tm (Agents / placement) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 185 547 Tm (Median events) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 267 547 Tm (S2 serial) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 326 547 Tm (S3 serial) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 385 547 Tm (4 threads) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 442 547 Tm (2 processes) Tj ET
+BT 1 1 1 rg /F2 9 Tf 1 0 0 1 506 547 Tm (4 processes) Tj ET
+0.955 0.965 0.975 rg 52 512 508 26 re f
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 60 521 Tm (5,000 uniform) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 185 521 Tm (2,417.5) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 267 521 Tm (2.85) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 326 521 Tm (2.70) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 385 521 Tm (2.96) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 442 521 Tm (4.18) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 506 521 Tm (4.63) Tj ET
+1 1 1 rg 52 486 508 26 re f
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 60 495 Tm (15,000 uniform) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 185 495 Tm (21,955.5) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 267 495 Tm (30.52) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 326 495 Tm (35.73) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 385 495 Tm (27.97) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 442 495 Tm (32.59) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 506 495 Tm (31.44) Tj ET
+0.955 0.965 0.975 rg 52 460 508 26 re f
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 60 469 Tm (30,000 uniform) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 185 469 Tm (89,337.5) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 267 469 Tm (135.30) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 326 469 Tm (177.43) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 385 469 Tm (183.85) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 442 469 Tm (195.11) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 506 469 Tm (200.20) Tj ET
+0.918 0.960 0.961 rg 52 434 508 26 re f
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 60 443 Tm (15,000 clustered) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 185 443 Tm (36,192) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 267 443 Tm (74.30) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 326 443 Tm (47.02) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 385 443 Tm (51.21) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 442 443 Tm (52.95) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 506 443 Tm (51.73) Tj ET
+BT 0.302 0.365 0.431 rg /F1 9.5 Tf 1 0 0 1 52 414 Tm (Table 1. Median event-phase milliseconds across 12 measured ticks per mode. Timings include) Tj ET
+BT 0.302 0.365 0.431 rg /F1 9.5 Tf 1 0 0 1 52 401 Tm (dispatch, logging, and commit. SQLite writes and replay hashing were outside the timers.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 374 Tm (What the results show) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 355 Tm (At 15,000 clustered agents, four processes reduced the median event phase from 74.30 ms in Stage) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 341 Tm (2 serial to 51.73 ms \(1.44×\). Stage 3 serial reached 47.02 ms \(1.58×\), so the change in event) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 327 Tm (algorithm accounts for the improvement over the original baseline. Four processes did not) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 313 Tm (improve on Stage 3 serial in any measured workload.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 292 Tm (At 30,000 uniform agents, the event phase reached 94,208 events in one measured tick. Four) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 278 Tm (processes took 200.20 ms per event phase and 670.75 ms per full tick at the median. Stage 2) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 264 Tm (serial took 135.30 ms and 613.66 ms, respectively. Process startup also mattered. At 5,000) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 250 Tm (agents, the first four-process event phase had a median of 73.87 ms.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 229 Tm (Direct demonstration) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 210 Tm (At 30,000 agents with seed 7, tick 5 produced 93,479 events and 3,887 conversions. Both the) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 196 Tm (Stage 2 serial and four-process runs ended the tick with 16,460 humans and 13,540 zombies. Their) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 182 Tm (replay hashes began 4de98a0752f9. Four distinct worker PIDs returned results in that) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 168 Tm (process-mode tick.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 147 Tm (All 13 tests passed, including ordered floating-point equivalence, empty input, conversion) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 133 Tm (timing, rollback and retry, multi-tick replay, and SQLite persistence. The benchmark verified) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 119 Tm (240 candidate-mode tick hashes against the Stage 2 serial reference.) Tj ET
+0.816 0.854 0.894 RG 0.65 w 52 49 m 560 49 l S
+BT 0.302 0.365 0.431 rg /F2 8.5 Tf 1 0 0 1 52 31 Tm (OUTBREAK LAST LIGHT  /  STAGE 3 IMPLEMENTATION) Tj ET
+BT 0.302 0.365 0.431 rg /F2 9 Tf 1 0 0 1 549 31 Tm (2) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 4899 >>
+stream
+BT 0.031 0.345 0.365 rg /F2 10 Tf 1 0 0 1 52 739 Tm (ZOMBIE GAME  /  FORMAL RESEARCH PROPOSAL) Tj ET
+BT 0.086 0.122 0.176 rg /F2 30 Tf 1 0 0 1 52 696 Tm (When does parallelism pay off?) Tj ET
+BT 0.302 0.365 0.431 rg /F1 12 Tf 1 0 0 1 52 670 Tm (Adaptive event scheduling for a deterministic agent simulation) Tj ET
+BT 0.302 0.365 0.431 rg /F1 10 Tf 1 0 0 1 52 647 Tm (Anthony Numssen  |  November 13, 2026) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 621 Tm (Problem statement) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 602 Tm (A growing simulation creates more contacts per tick, but how those contacts are distributed) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 588 Tm (matters. A dense area can give one human many more contacts than another. Workers can compute) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 574 Tm (independent human outcomes in parallel, but partitioning, transferring data, and waiting for) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 560 Tm (heavy batches can outweigh the work saved. The simulation must still produce the same event log) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 546 Tm (and agent state for a given seed.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 525 Tm (Research question) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 506 Tm (Under which combinations of event count, contacts per target, and worker count does parallel) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 492 Tm (event processing reduce median and tail tick latency while preserving exact replay? Can a) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 478 Tm (scheduler choose a suitable execution mode from statistics available before worker dispatch?) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 457 Tm (Proposed concentrations) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 438 Tm (Parallel and concurrent computing) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 423 Tm (Study task granularity, load balance, worker reuse, and communication costs. Compare fixed) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 409 Tm (batches against scheduling based on the number and distribution of contacts, and measure where) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 395 Tm (serial or process execution wins.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 373 Tm (Deterministic agent-based simulation) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 358 Tm (Study how snapshots, ordered reductions, and a single commit preserve repeatability. Use seeded) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 344 Tm (replay checks to test every scheduler under sparse contact, clustered contact, and) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 330 Tm (high-contention workloads.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 308 Tm (Hypotheses) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 289 Tm (1) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 289 Tm (A workload-dependent crossover) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 274 Tm (Processes will offer an advantage only when worker computation per transferred byte is) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 260 Tm (large enough to offset communication and coordination.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 240 Tm (2) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 240 Tm (Skew affects tail latency) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 225 Tm (Contact-weighted batching will reduce uneven worker completion times when load is spread) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 211 Tm (across several heavy targets. One dominant target will limit that benefit.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 191 Tm (3) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 191 Tm (Adaptive execution can protect small workloads) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 176 Tm (A scheduler using total contacts, target count, and the largest target's share will stay) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 162 Tm (closer to the best fixed mode across workload types.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 142 Tm (Stage 3 provides the starting point. The four-process backend preserved correctness in all four) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 128 Tm (cases, and its warm event timings were slower than the Stage 3 serial timings in each case. The) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 114 Tm (proposed study will test where the crossover occurs and measure the cost of choosing a backend) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 100 Tm (at runtime.) Tj ET
+0.816 0.854 0.894 RG 0.65 w 52 49 m 560 49 l S
+BT 0.302 0.365 0.431 rg /F2 8.5 Tf 1 0 0 1 52 31 Tm (OUTBREAK LAST LIGHT  /  FORMAL RESEARCH PROPOSAL) Tj ET
+BT 0.302 0.365 0.431 rg /F2 9 Tf 1 0 0 1 549 31 Tm (3) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 5296 >>
+stream
+BT 0.031 0.345 0.365 rg /F2 10 Tf 1 0 0 1 52 739 Tm (ZOMBIE GAME  /  FORMAL RESEARCH PROPOSAL) Tj ET
+BT 0.086 0.122 0.176 rg /F2 30 Tf 1 0 0 1 52 696 Tm (Research methodology) Tj ET
+BT 0.302 0.365 0.431 rg /F1 12 Tf 1 0 0 1 52 670 Tm (Workload design, instrumentation, and evaluation criteria) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 634 Tm (1) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 634 Tm (Define controlled workloads) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 619 Tm (Test 5,000, 15,000, and 30,000 agents under uniform placement and 15%, 30%, and 45% hotspot) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 605 Tm (placement. Keep the world, initial zombie share, time step, and contact rule fixed. Add) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 591 Tm (frozen event workloads that vary contact count and the largest target's share independently) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 577 Tm (of population.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 557 Tm (2) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 557 Tm (Implement and compare schedulers) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 542 Tm (Compare Stage 3 serial and four threads against two, four, and eight processes where) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 528 Tm (available. Test equal-target batches and contact-weighted batches at two, four, and eight) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 514 Tm (batches per worker. Train an adaptive rule to select serial or process execution using) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 500 Tm (total contacts, target count, and largest-target share.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 480 Tm (3) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 480 Tm (Collect measurements with independent seeds) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 465 Tm (Use 12 seeds per scenario, allocating six to calibration and six to held-out evaluation.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 451 Tm (Rotate mode order by seed. Record startup separately, then collect 30 timed ticks after) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 437 Tm (three warm-up ticks. Record event-only and whole-tick latency with SQLite off. Measure) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 423 Tm (persistence separately.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 403 Tm (4) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 403 Tm (Measure overhead and verify outcomes) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 388 Tm (Time grouping, worker submission and collection, and commit. Record worker compute) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 374 Tm (durations, task-size imbalance, and payload sizes. Compare event logs, conversions, and) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 360 Tm (per-agent state with the serial reference every tick. Repeat any mismatch with the same) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 346 Tm (seed and inspect the first divergent tick.) Tj ET
+BT 0.031 0.345 0.365 rg /F2 11 Tf 1 0 0 1 52 326 Tm (5) Tj ET
+BT 0.086 0.122 0.176 rg /F2 11 Tf 1 0 0 1 74 326 Tm (Analyze and report) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 311 Tm (Report median and 95th-percentile latency, events per second, and speedup and efficiency) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 297 Tm (relative to Stage 3 serial. Estimate uncertainty from paired seed-level differences. Report) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 283 Tm (the event-count and skew ranges where a crossover occurs, or the tested range if serial) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 74 269 Tm (remains faster. Amdahl's law motivates tracking the serial stages.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 249 Tm (Success criteria and deliverables) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 230 Tm (Require exact replay in every held-out trial. The adaptive design succeeds on performance if it) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 216 Tm (stays within 10% of the fastest fixed mode's median event latency in at least 80% of held-out) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 202 Tm (scenarios. Deliver the scheduler, replay tests, raw timings, and a plot showing how latency) Tj ET
+BT 0.153 0.192 0.243 rg /F1 11 Tf 1 0 0 1 52 188 Tm (changes with event volume and target skew.) Tj ET
+BT 0.086 0.122 0.176 rg /F2 14 Tf 1 0 0 1 52 163 Tm (References) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 52 144 Tm (Python Software Foundation. concurrent.futures - Launching parallel tasks.) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 52 132 Tm (docs.python.org/3/library/concurrent.futures.html) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 52 116 Tm (Amdahl, G. M. \(1967\). Validity of the single processor approach to achieving large scale computing) Tj ET
+BT 0.153 0.192 0.243 rg /F1 9 Tf 1 0 0 1 52 104 Tm (capabilities. AFIPS Spring Joint Computer Conference. doi.org/10.1145/1465482.1465560) Tj ET
+0.816 0.854 0.894 RG 0.65 w 52 49 m 560 49 l S
+BT 0.302 0.365 0.431 rg /F2 8.5 Tf 1 0 0 1 52 31 Tm (OUTBREAK LAST LIGHT  /  FORMAL RESEARCH PROPOSAL) Tj ET
+BT 0.302 0.365 0.431 rg /F2 9 Tf 1 0 0 1 549 31 Tm (4) Tj ET
+endstream
+endobj
+xref
+0 14
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000141 00000 n 
+0000000238 00000 n 
+0000000340 00000 n 
+0000000454 00000 n 
+0000000590 00000 n 
+0000005121 00000 n 
+0000005257 00000 n 
+0000011573 00000 n 
+0000011711 00000 n 
+0000016663 00000 n 
+0000016801 00000 n 
+trailer
+<< /Size 14 /Root 1 0 R /Info 5 0 R >>
+startxref
+22150
+%%EOF

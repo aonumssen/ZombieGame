@@ -170,8 +170,7 @@ class ScalableSimulation:
         neighbor_time_ms = (time.perf_counter() - neighbor_started) * 1_000
 
         event_started = time.perf_counter()
-        events = self.event_processor.build_events(views, pairs)
-        conversions = self.event_processor.apply_events(self.agents, events)
+        events, conversions = self._process_events(views, pairs)
         event_time_ms = (time.perf_counter() - event_started) * 1_000
 
         self.last_pairs = pairs
@@ -193,6 +192,12 @@ class ScalableSimulation:
             neighbor_time_ms=neighbor_time_ms,
             event_time_ms=event_time_ms,
         )
+
+    def _process_events(
+        self, views: tuple[AgentView, ...], pairs: list[NeighborPair]
+    ) -> tuple[list[SimulationEvent], int]:
+        events = self.event_processor.build_events(views, pairs)
+        return events, self.event_processor.apply_events(self.agents, events)
 
     def run(self, steps: int, dt: float = 0.05) -> list[Stage2StepMetrics]:
         if steps < 0:
